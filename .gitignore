@@ -1,0 +1,22 @@
+# Python
+backend/venv/
+backend/__pycache__/
+backend/app/__pycache__/
+backend/app/routes/__pycache__/
+backend/app/services/__pycache__/
+backend/*.pyc
+backend/.env
+
+# Flask migrations (keep structure, ignore cache)
+backend/migrations/__pycache__/
+
+# React
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+
+# VS Code
+.vscode/
+
+# OS
+.DS_Store
