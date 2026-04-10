@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react'
-import type{ReactNode} from 'react'
+import type{ ReactNode } from 'react'
 
 interface User {
     id: number
@@ -14,6 +14,7 @@ interface AuthContextType {
     login: (token: string, user: User) => void
     logout: () => void
     isAuthenticated: boolean
+    loading: boolean
 }
 
 const AuthContext = createContext<AuthContextType | null>(null)
@@ -21,6 +22,7 @@ const AuthContext = createContext<AuthContextType | null>(null)
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<User | null>(null)
     const [token, setToken] = useState<string | null>(null)
+    const [loading, setLoading] = useState(true)
 
     useEffect(() => {
         const savedToken = localStorage.getItem('access_token')
@@ -29,6 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setToken(savedToken)
             setUser(JSON.parse(savedUser))
         }
+        setLoading(false)
     }, [])
 
     const login = (token: string, user: User) => {
@@ -46,7 +49,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     return (
-        <AuthContext.Provider value={{ user, token, login, logout, isAuthenticated: !!token }}>
+        <AuthContext.Provider value={{
+            user,
+            token,
+            login,
+            logout,
+            isAuthenticated: !!token,
+            loading
+        }}>
             {children}
         </AuthContext.Provider>
     )

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 import api from '../api/axios'
 
 export default function Signup() {
@@ -10,19 +11,21 @@ export default function Signup() {
     const [error, setError] = useState('')
     const [loading, setLoading] = useState(false)
     const navigate = useNavigate()
+    const { login } = useAuth()
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         setError('')
         setLoading(true)
         try {
-            await api.post('/auth/signup', {
+            const response = await api.post('/auth/signup', {
                 name,
                 email,
                 password,
                 account_type: accountType
             })
-            navigate('/login')
+            login(response.data.access_token, response.data.user)
+            navigate('/dashboard')
         } catch (err: any) {
             setError(err.response?.data?.error || 'Something went wrong')
         } finally {
@@ -45,9 +48,7 @@ export default function Signup() {
                     )}
                     <form onSubmit={handleSubmit} className="space-y-5">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Full name
-                            </label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Full name</label>
                             <input
                                 type="text"
                                 value={name}
@@ -58,9 +59,7 @@ export default function Signup() {
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Email address
-                            </label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Email address</label>
                             <input
                                 type="email"
                                 value={email}
@@ -71,9 +70,7 @@ export default function Signup() {
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Password
-                            </label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
                             <input
                                 type="password"
                                 value={password}
@@ -84,9 +81,7 @@ export default function Signup() {
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Account type
-                            </label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Account type</label>
                             <select
                                 value={accountType}
                                 onChange={(e) => setAccountType(e.target.value)}

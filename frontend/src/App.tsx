@@ -7,6 +7,8 @@ import Dashboard from './pages/Dashboard'
 import Transactions from './pages/Transactions'
 import Budgets from './pages/Budgets'
 import Reports from './pages/Reports'
+import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword from './pages/ResetPassword'
 
 export default function App() {
     return (
@@ -28,6 +30,8 @@ export default function App() {
                     <Route path="/reports" element={
                         <ProtectedRoute><Reports /></ProtectedRoute>
                     } />
+                    <Route path="/forgot-password" element={<ForgotPassword />} />
+                    <Route path="/reset-password" element={<ResetPassword />} />
                 </Routes>
             </AuthProvider>
         </BrowserRouter>
