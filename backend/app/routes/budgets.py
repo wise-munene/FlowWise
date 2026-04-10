@@ -24,7 +24,6 @@ def get_budgets():
         'created_at': b.created_at.strftime('%Y-%m-%d %H:%M:%S')
     } for b in budgets]), 200
 
-
 @budgets_bp.route('/', methods=['POST'])
 @jwt_required()
 def create_budget():
@@ -42,10 +41,7 @@ def create_budget():
     if not category or not budget_amount:
         return jsonify({'error': 'Category and budget amount are required'}), 400
 
-    existing = Budget.query.filter_by(
-        user_id=user_id,
-        category=category
-    ).first()
+    existing = Budget.query.filter_by(user_id=user_id, category=category).first()
     if existing:
         return jsonify({'error': f'Budget for {category} already exists'}), 409
 
@@ -54,10 +50,21 @@ def create_budget():
     except ValueError:
         return jsonify({'error': 'Period must be monthly or yearly'}), 400
 
+    # calculate existing spending for this category
+    from app.models.transaction import Transaction, TransactionType
+    existing_spending = db.session.query(
+        db.func.sum(Transaction.amount)
+    ).filter_by(
+        user_id=user_id,
+        category=category,
+        type=TransactionType.expense
+    ).scalar() or 0
+
     budget = Budget(
         user_id=user_id,
         category=category,
         budget_amount=budget_amount,
+        spent_amount=existing_spending,
         period=period,
         alert_threshold=alert_threshold
     )
@@ -65,8 +72,11 @@ def create_budget():
     db.session.add(budget)
     db.session.commit()
 
-    return jsonify({'message': 'Budget created successfully', 'id': budget.id}), 201
-
+    return jsonify({
+        'message': 'Budget created successfully',
+        'id': budget.id,
+        'spent_amount': float(existing_spending)
+    }), 201
 
 @budgets_bp.route('/<int:id>', methods=['PUT'])
 @jwt_required()

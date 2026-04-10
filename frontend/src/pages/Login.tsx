@@ -32,6 +32,12 @@ export default function Login() {
         <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
             <div className="w-full max-w-md">
 
+             <div className="mb-4">
+                  <Link to="/" className="text-sm text-gray-400 hover:text-gray-600 flex items-center gap-1">
+                   ← Back to home
+                  </Link>
+             </div>
+
                 {/* Logo and title */}
                 <div className="text-center mb-8">
                     <h1 className="text-3xl font-bold text-blue-600">FlowWise</h1>
@@ -88,8 +94,8 @@ export default function Login() {
                         >
                             {loading ? 'Signing in...' : 'Sign in'}
                         </button>
-                        
-                         {/* Forgot password — ADD THIS */}
+
+                         {/* Forgot password */}
                         <div className="text-right">
                             <Link to="/forgot-password" className="text-sm text-blue-600 hover:underline">
                                 Forgot password?

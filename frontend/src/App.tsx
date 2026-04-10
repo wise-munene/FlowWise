@@ -9,15 +9,19 @@ import Budgets from './pages/Budgets'
 import Reports from './pages/Reports'
 import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
+import Home from './pages/Home'
 
 export default function App() {
     return (
         <BrowserRouter>
             <AuthProvider>
                 <Routes>
-                    <Route path="/" element={<Navigate to="/login" />} />
+                    <Route path="/" element={<Home />} />
+                    <Route path="/login" element={<Login />} />
                     <Route path="/login" element={<Login />} />
                     <Route path="/signup" element={<Signup />} />
+                    <Route path="/forgot-password" element={<ForgotPassword />} />
+                    <Route path="/reset-password" element={<ResetPassword />} />
                     <Route path="/dashboard" element={
                         <ProtectedRoute><Dashboard /></ProtectedRoute>
                     } />
@@ -32,6 +36,7 @@ export default function App() {
                     } />
                     <Route path="/forgot-password" element={<ForgotPassword />} />
                     <Route path="/reset-password" element={<ResetPassword />} />
+                    
                 </Routes>
             </AuthProvider>
         </BrowserRouter>
