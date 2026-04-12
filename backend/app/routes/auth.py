@@ -85,7 +85,6 @@ def login():
         }
     }), 200
 
-
 @auth_bp.route('/forgot-password', methods=['POST'])
 def forgot_password():
     data = request.get_json()
@@ -106,17 +105,17 @@ def forgot_password():
         subject='Reset your FlowWise password',
         sender=os.getenv('MAIL_USERNAME'),
         recipients=[email],
-        body=f'Hi {user.name},\n\nClick this link to reset your password:\n{reset_link}\n\nThis link expires in 1 hour.\n\nIf you did not request this, ignore this email.'
+        body=f'Hi {user.name},\n\nClick this link to reset your password:\n\n{reset_link}\n\nThis link expires in 1 hour.\n\nIf you did not request this, ignore this email.\n\nThe FlowWise Team'
     )
 
     try:
         mail.send(msg)
+        return jsonify({'message': 'If this email exists you will receive a reset link'}), 200
     except Exception as e:
-        return jsonify({'error': 'Failed to send email. Please check mail configuration.'}), 500
-
-    return jsonify({'message': 'If this email exists you will receive a reset link'}), 200
-
-
+        print(f'MAIL ERROR: {e}')
+        return jsonify({'error': 'Failed to send email'}), 500
+    
+    
 @auth_bp.route('/reset-password', methods=['POST'])
 def reset_password():
     data = request.get_json()

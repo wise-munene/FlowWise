@@ -1,27 +1,43 @@
 import { Link } from 'react-router-dom'
 import emailjs from '@emailjs/browser'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 export default function Home() {
     const formRef = useRef<HTMLFormElement>(null)
     const [contactStatus, setContactStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
 
+    useEffect(() => {
+    emailjs.init('7nJJoOeCr9Jxb5wnx')
+    }, [])
+    
     const handleContact = async (e: React.FormEvent) => {
-        e.preventDefault()
-        setContactStatus('sending')
-        try {
-            await emailjs.sendForm(
-                'service_c5r72bh',
-                'template_44colwr',
-                formRef.current!,
-                '7nJJoOeCr9Jxb5wnx'
-            )
-            setContactStatus('sent')
-            formRef.current?.reset()
-        } catch {
-            setContactStatus('error')
-        }
+    e.preventDefault()
+    setContactStatus('sending')
+
+    const form = formRef.current
+    if (!form) return
+
+    const templateParams = {
+        from_name: (form.elements.namedItem('from_name') as HTMLInputElement).value,
+        from_email: (form.elements.namedItem('from_email') as HTMLInputElement).value,
+        subject: (form.elements.namedItem('subject') as HTMLInputElement).value,
+        message: (form.elements.namedItem('message') as HTMLTextAreaElement).value,
     }
+
+    try {
+        await emailjs.send(
+            'service_9pj6uei',
+            'template_44colwr',
+            templateParams,
+            '7nJJoOeCr9Jxb5wnx'
+        )
+        setContactStatus('sent')
+        formRef.current?.reset()
+    } catch (err) {
+        console.error('EmailJS error:', err)
+        setContactStatus('error')
+    }
+}
 
     const features = [
         {

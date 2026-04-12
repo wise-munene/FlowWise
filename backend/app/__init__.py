@@ -27,6 +27,7 @@ def create_app():
     mail.init_app(app)
 
     from .models import User, Transaction, Budget, Receipt
+    from .models.reset_token import PasswordResetToken
 
     from .routes import auth_bp, transactions_bp, budgets_bp, reports_bp
 
