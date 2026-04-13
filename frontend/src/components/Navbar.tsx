@@ -16,6 +16,7 @@ export default function Navbar() {
         { path: '/transactions', label: 'Transactions' },
         { path: '/budgets', label: 'Budgets' },
         { path: '/reports', label: 'Reports' },
+        { path: '/mpesa', label: 'M-Pesa' },
     ]
 
     return (

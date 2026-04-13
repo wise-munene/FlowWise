@@ -10,6 +10,7 @@ import Reports from './pages/Reports'
 import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
 import Home from './pages/Home'
+import Mpesa from './pages/Mpesa'
 
 export default function App() {
     return (
@@ -36,6 +37,9 @@ export default function App() {
                     } />
                     <Route path="/forgot-password" element={<ForgotPassword />} />
                     <Route path="/reset-password" element={<ResetPassword />} />
+                    <Route path="/mpesa" element={
+                        <ProtectedRoute><Mpesa /></ProtectedRoute>
+                    } />
                     
                 </Routes>
             </AuthProvider>

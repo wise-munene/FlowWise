@@ -29,11 +29,12 @@ def create_app():
     from .models import User, Transaction, Budget, Receipt
     from .models.reset_token import PasswordResetToken
 
-    from .routes import auth_bp, transactions_bp, budgets_bp, reports_bp
+    from .routes import auth_bp, transactions_bp, budgets_bp, reports_bp, mpesa_bp
 
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(transactions_bp, url_prefix='/api/transactions')
     app.register_blueprint(budgets_bp, url_prefix='/api/budgets')
     app.register_blueprint(reports_bp, url_prefix='/api/reports')
+    app.register_blueprint(mpesa_bp, url_prefix='/api/mpesa')
 
     return app
