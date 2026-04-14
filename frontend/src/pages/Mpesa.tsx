@@ -1,25 +1,47 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Navbar from '../components/Navbar'
 import api from '../api/axios'
+
+type MpesaAccount = {
+    id: number
+    account_type: 'till' | 'paybill'
+    shortcode: string
+    account_name?: string
+}
 
 export default function Mpesa() {
     const [phone, setPhone] = useState('')
     const [amount, setAmount] = useState('')
-    const [category, setCategory] = useState('M-Pesa')
     const [description, setDescription] = useState('')
     const [loading, setLoading] = useState(false)
     const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle')
     const [message, setMessage] = useState('')
 
-    const CATEGORIES = [
-        'Rent', 'Utilities', 'Groceries', 'Transport',
-        'Salaries', 'Healthcare', 'Entertainment', 'M-Pesa', 'Other'
-    ]
+    const [accounts, setAccounts] = useState<MpesaAccount[]>([])
+    const [accountType, setAccountType] = useState<'till' | 'paybill'>('till')
+    const [shortcode, setShortcode] = useState('')
+    const [accountName, setAccountName] = useState('')
+
+    const [paymentMethod, setPaymentMethod] = useState<'stk' | 'till' | 'paybill'>('stk')
+
+    useEffect(() => {
+        fetchAccounts()
+    }, [])
+
+    const fetchAccounts = async () => {
+        try {
+            const res = await api.get('/mpesa/accounts')
+            setAccounts(res.data)
+        } catch (err) {
+            console.error(err)
+        }
+    }
 
     const handleSTKPush = async (e: React.FormEvent) => {
         e.preventDefault()
         setLoading(true)
         setStatus('idle')
+
         try {
             const response = await api.post('/mpesa/stk-push', {
                 phone,
@@ -41,11 +63,11 @@ export default function Mpesa() {
         e.preventDefault()
         setLoading(true)
         setStatus('idle')
+
         try {
             const response = await api.post('/mpesa/simulate', {
                 phone,
                 amount: parseFloat(amount),
-                category,
                 description
             })
             setMessage(response.data.message)
@@ -61,14 +83,33 @@ export default function Mpesa() {
         }
     }
 
+    const handleAddAccount = async (e: React.FormEvent) => {
+        e.preventDefault()
+
+        try {
+            await api.post('/mpesa/accounts', {
+                account_type: accountType,
+                shortcode,
+                account_name: accountType === 'paybill' ? accountName : ''
+            })
+
+            fetchAccounts()
+            setShortcode('')
+            setAccountName('')
+        } catch (err) {
+            console.error(err)
+        }
+    }
+
     return (
         <div className="min-h-screen bg-gray-50">
             <Navbar />
             <div className="max-w-2xl mx-auto px-6 py-8">
+
                 <div className="mb-6">
                     <h2 className="text-2xl font-bold text-gray-900">M-Pesa</h2>
                     <p className="text-sm text-gray-500 mt-1">
-                        Send payment requests and record M-Pesa transactions
+                        Send payment requests and manage payments
                     </p>
                 </div>
 
@@ -82,165 +123,199 @@ export default function Mpesa() {
                     </div>
                 )}
 
-                {/* STK Push */}
+                {/* STK PUSH */}
                 <div className="bg-white rounded-xl border border-gray-100 p-6 mb-6">
-                    <div className="flex items-center gap-3 mb-4">
-                        <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
-                            <span className="text-white text-xs font-bold">M</span>
-                        </div>
-                        <div>
-                            <h3 className="text-sm font-semibold text-gray-800">
-                                STK Push payment
-                            </h3>
-                            <p className="text-xs text-gray-400">
-                                Sends a payment prompt to the customer's phone
-                            </p>
-                        </div>
-                        <span className="ml-auto text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full font-medium">
-                            Sandbox
-                        </span>
-                    </div>
+                    <h3 className="text-sm font-semibold text-gray-800 mb-3">
+                        STK Push Payment
+                    </h3>
+
                     <form onSubmit={handleSTKPush} className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Phone number
-                                </label>
-                                <input
-                                    type="text"
-                                    value={phone}
-                                    onChange={(e) => setPhone(e.target.value)}
-                                    placeholder="0712345678"
-                                    required
-                                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Amount (KES)
-                                </label>
-                                <input
-                                    type="number"
-                                    value={amount}
-                                    onChange={(e) => setAmount(e.target.value)}
-                                    placeholder="100"
-                                    required
-                                    min="1"
-                                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-                                />
-                            </div>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Description (optional)
-                            </label>
                             <input
                                 type="text"
-                                value={description}
-                                onChange={(e) => setDescription(e.target.value)}
-                                placeholder="Payment for services"
-                                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                                value={phone}
+                                onChange={(e) => setPhone(e.target.value)}
+                                placeholder="0712345678"
+                                required
+                                className="w-full px-4 py-2.5 border rounded-lg"
+                            />
+                            <input
+                                type="number"
+                                value={amount}
+                                onChange={(e) => setAmount(e.target.value)}
+                                placeholder="100"
+                                required
+                                className="w-full px-4 py-2.5 border rounded-lg"
                             />
                         </div>
+
+                        <input
+                            type="text"
+                            value={description}
+                            onChange={(e) => setDescription(e.target.value)}
+                            placeholder="Payment for services"
+                            className="w-full px-4 py-2.5 border rounded-lg"
+                        />
+
                         <button
-                            type="submit"
                             disabled={loading}
-                            className="w-full bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white text-sm font-medium py-2.5 rounded-lg transition-colors"
+                            className="w-full bg-green-600 text-white py-2 rounded-lg"
                         >
-                            {loading ? 'Sending request...' : 'Send STK Push'}
+                            {loading ? 'Processing...' : 'Send STK Push'}
                         </button>
                     </form>
                 </div>
 
-                {/* Simulate transaction */}
-                <div className="bg-white rounded-xl border border-gray-100 p-6">
-                    <div className="flex items-center gap-3 mb-4">
-                        <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                            <span className="text-white text-xs font-bold">S</span>
-                        </div>
-                        <div>
-                            <h3 className="text-sm font-semibold text-gray-800">
-                                Simulate M-Pesa transaction
-                            </h3>
-                            <p className="text-xs text-gray-400">
-                                Record an M-Pesa payment directly without STK Push
-                            </p>
-                        </div>
-                    </div>
+                {/* SIMULATE */}
+                <div className="bg-white rounded-xl border border-gray-100 p-6 mb-6">
+                    <h3 className="text-sm font-semibold text-gray-800 mb-3">
+                        Simulate M-Pesa transaction
+                    </h3>
+
                     <form onSubmit={handleSimulate} className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Phone number
-                                </label>
-                                <input
-                                    type="text"
-                                    value={phone}
-                                    onChange={(e) => setPhone(e.target.value)}
-                                    placeholder="0712345678"
-                                    required
-                                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Amount (KES)
-                                </label>
-                                <input
-                                    type="number"
-                                    value={amount}
-                                    onChange={(e) => setAmount(e.target.value)}
-                                    placeholder="100"
-                                    required
-                                    min="1"
-                                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                />
-                            </div>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Category
-                            </label>
-                            <select
-                                value={category}
-                                onChange={(e) => setCategory(e.target.value)}
-                                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            >
-                                {CATEGORIES.map(c => (
-                                    <option key={c} value={c}>{c}</option>
-                                ))}
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Description (optional)
-                            </label>
-                            <input
-                                type="text"
-                                value={description}
-                                onChange={(e) => setDescription(e.target.value)}
-                                placeholder="What was this payment for?"
-                                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            />
-                        </div>
+                        <input
+                            value={phone}
+                            onChange={(e) => setPhone(e.target.value)}
+                            placeholder="Phone"
+                            className="w-full border px-3 py-2 rounded"
+                        />
+                        <input
+                            value={amount}
+                            onChange={(e) => setAmount(e.target.value)}
+                            placeholder="Amount"
+                            className="w-full border px-3 py-2 rounded"
+                        />
                         <button
-                            type="submit"
                             disabled={loading}
-                            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white text-sm font-medium py-2.5 rounded-lg transition-colors"
+                            className="bg-blue-600 text-white px-4 py-2 rounded"
                         >
-                            {loading ? 'Recording...' : 'Record M-Pesa transaction'}
+                            {loading ? 'Processing...' : 'Record'}
                         </button>
                     </form>
                 </div>
 
-                <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-                    <p className="text-xs text-amber-700 font-medium mb-1">Sandbox mode</p>
-                    <p className="text-xs text-amber-600">
-                        STK Push uses Safaricom's sandbox — no real money moves.
-                        Use the simulate option to test recording transactions in FlowWise.
-                        For production, update MPESA_ENV=production in your .env after Safaricom approves your app.
-                    </p>
+                {/* BUSINESS SETUP */}
+                <div className="bg-white rounded-xl border border-gray-100 p-6 mb-6">
+                    <h3 className="text-sm font-semibold text-gray-800 mb-3">
+                        Add M-Pesa Account
+                    </h3>
+
+                    <form onSubmit={handleAddAccount} className="space-y-3">
+                        <select
+                            value={accountType}
+                            onChange={(e) => setAccountType(e.target.value as 'till' | 'paybill')}
+                            className="w-full border rounded-lg px-3 py-2"
+                        >
+                            <option value="till">Till</option>
+                            <option value="paybill">Paybill</option>
+                        </select>
+
+                        <input
+                            placeholder="Shortcode"
+                            value={shortcode}
+                            onChange={(e) => setShortcode(e.target.value)}
+                            className="w-full border rounded-lg px-3 py-2"
+                        />
+
+                        {accountType === 'paybill' && (
+                            <input
+                                placeholder="Account Name"
+                                value={accountName}
+                                onChange={(e) => setAccountName(e.target.value)}
+                                className="w-full border rounded-lg px-3 py-2"
+                            />
+                        )}
+
+                        <button className="bg-blue-600 text-white px-4 py-2 rounded-lg">
+                            Add Account
+                        </button>
+                    </form>
                 </div>
+
+                {/* ACCOUNTS */}
+                <div className="bg-white rounded-xl border border-gray-100 p-6 mb-6">
+                    <h3 className="text-sm font-semibold text-gray-800 mb-3">
+                        Your Accounts
+                    </h3>
+
+                    {accounts.length === 0 ? (
+                        <p className="text-sm text-gray-400">No accounts added</p>
+                    ) : (
+                        accounts.map((acc) => (
+                            <div key={acc.id} className="border-b py-2">
+                                <p className="text-sm font-medium">
+                                    {acc.account_type.toUpperCase()} - {acc.shortcode}
+                                </p>
+                                {acc.account_type === 'paybill' && (
+                                    <p className="text-xs text-gray-400">
+                                        {acc.account_name}
+                                    </p>
+                                )}
+                            </div>
+                        ))
+                    )}
+                </div>
+
+                {/* CUSTOMER PAYMENT */}
+                <div className="bg-white rounded-xl border border-gray-100 p-6">
+                    <h3 className="text-sm font-semibold text-gray-800 mb-3">
+                        Pay Business
+                    </h3>
+
+                    <select
+                        value={paymentMethod}
+                        onChange={(e) =>
+                            setPaymentMethod(e.target.value as 'stk' | 'till' | 'paybill')
+                        }
+                        className="w-full border rounded-lg px-3 py-2 mb-4"
+                    >
+                        <option value="stk">STK Push</option>
+                        <option value="till">Till (Buy Goods)</option>
+                        <option value="paybill">Paybill</option>
+                    </select>
+
+                    {paymentMethod === 'stk' && (
+                        <p className="text-sm text-gray-500">
+                            Use STK Push above to pay instantly
+                        </p>
+                    )}
+
+                    {paymentMethod === 'till' &&
+                        accounts
+                            .filter((a) => a.account_type === 'till')
+                            .map((acc) => (
+                                <div key={acc.id}>
+                                    <p className="text-sm">
+                                        Till Number: <span className="font-bold">{acc.shortcode}</span>
+                                    </p>
+                                    <div className="text-xs text-gray-400 mt-2">
+                                        <p>1. Go to M-Pesa</p>
+                                        <p>2. Buy Goods</p>
+                                        <p>3. Enter Till Number</p>
+                                        <p>4. Enter amount</p>
+                                        <p>5. Confirm</p>
+                                    </div>
+                                </div>
+                            ))}
+
+                    {paymentMethod === 'paybill' &&
+                        accounts
+                            .filter((a) => a.account_type === 'paybill')
+                            .map((acc) => (
+                                <div key={acc.id}>
+                                    <p className="text-sm">
+                                        Paybill: <span className="font-bold">{acc.shortcode}</span>
+                                    </p>
+                                    <p className="text-sm">
+                                        Account:{' '}
+                                        <span className="font-bold">
+                                            {phone || 'Your phone number'}
+                                        </span>
+                                    </p>
+                                </div>
+                            ))}
+                </div>
+
             </div>
         </div>
     )
