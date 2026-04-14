@@ -7,34 +7,40 @@ from datetime import datetime
 
 transactions_bp = Blueprint('transactions', __name__)
 
+
+# ================= GET =================
 @transactions_bp.route('/', methods=['GET'])
 @jwt_required()
-def get_transactions():  #able to know the user through the token assigned during login
+def get_transactions():
     user_id = get_jwt_identity()
-    transactions = Transaction.query.filter_by(user_id=user_id).order_by(Transaction.date.desc()).all()  
+
+    transactions = Transaction.query.filter_by(user_id=user_id)\
+        .order_by(Transaction.created_at.desc())\
+        .all()
 
     return jsonify([{
         'id': t.id,
         'type': t.type.value,
         'category': t.category,
         'amount': float(t.amount),
-        'date': t.date.strftime('%Y-%m-%d'),  # Format date as string
+        'date': t.date.strftime('%Y-%m-%d'),
         'notes': t.notes,
         'is_recurring': t.is_recurring,
-        'created_at': t.created_at.strftime('%Y-%m-%d %H:%M:%S')  
-    } for t in transactions]), 200  
+        'created_at': t.created_at.strftime('%Y-%m-%d %H:%M:%S')
+    } for t in transactions]), 200
 
 
+# ================= CREATE =================
 @transactions_bp.route('/', methods=['POST'])
 @jwt_required()
 def create_transaction():
-    user_id = get_jwt_identity()  
+    user_id = get_jwt_identity()
     data = request.get_json()
 
     if not data:
         return jsonify({'error': 'No data provided'}), 400
 
-    type_str = data.get('type')  
+    type_str = data.get('type')
     category = data.get('category')
     amount = data.get('amount')
     date_str = data.get('date')
@@ -44,13 +50,23 @@ def create_transaction():
     if not type_str or not category or not amount or not date_str:
         return jsonify({'error': 'Type, category, amount and date are required'}), 400
 
-    try:  #
-        transaction_type = TransactionType(type_str)  # Validate enum value
+    # ✅ Validate type
+    try:
+        transaction_type = TransactionType(type_str)
     except ValueError:
         return jsonify({'error': 'Type must be income or expense'}), 400
 
+    # ✅ Validate amount
     try:
-        date = datetime.strptime(date_str, '%Y-%m-%d').date() # Validate date format, ,must be in YYYY-MM-DD format
+        amount = float(amount)
+        if amount <= 0:
+            raise ValueError
+    except:
+        return jsonify({'error': 'Amount must be a positive number'}), 400
+
+    # ✅ Validate date
+    try:
+        date = datetime.strptime(date_str, '%Y-%m-%d').date()
     except ValueError:
         return jsonify({'error': 'Date must be in YYYY-MM-DD format'}), 400
 
@@ -66,19 +82,25 @@ def create_transaction():
 
     db.session.add(transaction)
 
-    if transaction_type == TransactionType.expense:  # Update the corresponding budget's spent_amount
-        budget = Budget.query.filter_by(  # Find the budget for the user and category
+    # ✅ Budget update
+    if transaction_type == TransactionType.expense:
+        budget = Budget.query.filter_by(
             user_id=user_id,
             category=category
         ).first()
+
         if budget:
-            budget.spent_amount = float(budget.spent_amount) + float(amount)   # Update the spent_amount by adding the new expense amount
+            budget.spent_amount = float(budget.spent_amount) + amount
 
     db.session.commit()
 
-    return jsonify({'message': 'Transaction created successfully', 'id': transaction.id}), 201
+    return jsonify({
+        'message': 'Transaction created successfully',
+        'id': transaction.id
+    }), 201
 
 
+# ================= UPDATE =================
 @transactions_bp.route('/<int:id>', methods=['PUT'])
 @jwt_required()
 def update_transaction(id):
@@ -89,23 +111,53 @@ def update_transaction(id):
         return jsonify({'error': 'Transaction not found'}), 404
 
     data = request.get_json()
-    
-    if 'category' in data:  # Update the category and adjust the budget if it's an expense
+
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
+
+    old_amount = float(transaction.amount)
+
+    if 'category' in data:
         transaction.category = data['category']
+
     if 'amount' in data:
-        transaction.amount = data['amount']
+        try:
+            new_amount = float(data['amount'])
+            if new_amount <= 0:
+                raise ValueError
+            transaction.amount = new_amount
+        except:
+            return jsonify({'error': 'Amount must be positive'}), 400
+
     if 'date' in data:
-        transaction.date = datetime.strptime(data['date'], '%Y-%m-%d').date()
+        try:
+            transaction.date = datetime.strptime(data['date'], '%Y-%m-%d').date()
+        except:
+            return jsonify({'error': 'Invalid date format'}), 400
+
     if 'notes' in data:
         transaction.notes = data['notes']
+
     if 'is_recurring' in data:
-        transaction.is_recurring = data['is_recurring'] # Update the is_recurring field if provided
+        transaction.is_recurring = data['is_recurring']
+
+    # ✅ Fix budget consistency
+    if transaction.type == TransactionType.expense and 'amount' in data:
+        budget = Budget.query.filter_by(
+            user_id=user_id,
+            category=transaction.category
+        ).first()
+
+        if budget:
+            difference = float(transaction.amount) - old_amount
+            budget.spent_amount += difference
 
     db.session.commit()
 
     return jsonify({'message': 'Transaction updated successfully'}), 200
 
 
+# ================= DELETE =================
 @transactions_bp.route('/<int:id>', methods=['DELETE'])
 @jwt_required()
 def delete_transaction(id):
@@ -120,8 +172,12 @@ def delete_transaction(id):
             user_id=user_id,
             category=transaction.category
         ).first()
+
         if budget:
-            budget.spent_amount = max(0, float(budget.spent_amount) - float(transaction.amount))
+            budget.spent_amount = max(
+                0,
+                float(budget.spent_amount) - float(transaction.amount)
+            )
 
     db.session.delete(transaction)
     db.session.commit()

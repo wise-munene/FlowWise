@@ -4,6 +4,7 @@ from app import db
 from app.models.transaction import Transaction, TransactionType
 from app.models.budget import Budget
 from app.models.mpesa_account import MpesaAccount
+from app.models.user import User
 import requests
 import base64
 import os
@@ -12,24 +13,37 @@ from datetime import datetime
 mpesa_bp = Blueprint('mpesa', __name__)
 
 
+# ================= HELPERS =================
+
+def normalize_phone(phone):
+    phone = str(phone)
+    if phone.startswith('0'):
+        return '254' + phone[1:]
+    if phone.startswith('+'):
+        return phone[1:]
+    return phone
+
+
+def is_duplicate(receipt):
+    return Transaction.query.filter(
+        Transaction.notes.like(f'%{receipt}%')
+    ).first() is not None
+
+
 def get_mpesa_token():
     consumer_key = os.getenv('MPESA_CONSUMER_KEY')
     consumer_secret = os.getenv('MPESA_CONSUMER_SECRET')
     env = os.getenv('MPESA_ENV', 'sandbox')
 
-    if env == 'sandbox':
-        url = 'https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials'
-    else:
-        url = 'https://api.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials'
-
-    credentials = base64.b64encode(
-        f'{consumer_key}:{consumer_secret}'.encode()
-    ).decode()
-
-    response = requests.get(
-        url,
-        headers={'Authorization': f'Basic {credentials}'}
+    url = (
+        'https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials'
+        if env == 'sandbox'
+        else 'https://api.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials'
     )
+
+    credentials = base64.b64encode(f'{consumer_key}:{consumer_secret}'.encode()).decode()
+
+    response = requests.get(url, headers={'Authorization': f'Basic {credentials}'})
     return response.json().get('access_token')
 
 
@@ -66,13 +80,15 @@ def record_transaction(user_id, amount, phone, notes, category='M-Pesa',
     return transaction
 
 
+# ================= STK PUSH =================
+
 @mpesa_bp.route('/stk-push', methods=['POST'])
 @jwt_required()
 def stk_push():
     user_id = get_jwt_identity()
     data = request.get_json()
 
-    phone = data.get('phone')
+    phone = normalize_phone(data.get('phone'))
     amount = data.get('amount')
     account_ref = data.get('account_ref', 'FlowWise')
     description = data.get('description', 'Payment')
@@ -80,20 +96,16 @@ def stk_push():
     if not phone or not amount:
         return jsonify({'error': 'Phone number and amount are required'}), 400
 
-    if phone.startswith('0'):
-        phone = '254' + phone[1:]
-    elif phone.startswith('+'):
-        phone = phone[1:]
-
     try:
         token = get_mpesa_token()
         password, timestamp = generate_password()
         env = os.getenv('MPESA_ENV', 'sandbox')
 
-        if env == 'sandbox':
-            url = 'https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest'
-        else:
-            url = 'https://api.safaricom.co.ke/mpesa/stkpush/v1/processrequest'
+        url = (
+            'https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest'
+            if env == 'sandbox'
+            else 'https://api.safaricom.co.ke/mpesa/stkpush/v1/processrequest'
+        )
 
         payload = {
             'BusinessShortCode': os.getenv('MPESA_SHORTCODE'),
@@ -136,6 +148,8 @@ def stk_push():
         return jsonify({'error': 'Failed to initiate payment'}), 500
 
 
+# ================= STK CALLBACK =================
+
 @mpesa_bp.route('/callback', methods=['POST'])
 def mpesa_callback():
     data = request.get_json()
@@ -147,7 +161,6 @@ def mpesa_callback():
         result_code = stk_callback.get('ResultCode')
 
         if result_code != 0:
-            print(f'Payment failed: {result_code}')
             return jsonify({'ResultCode': 0, 'ResultDesc': 'Accepted'}), 200
 
         metadata = stk_callback.get('CallbackMetadata', {})
@@ -160,14 +173,33 @@ def mpesa_callback():
         for item in items:
             name = item.get('Name')
             value = item.get('Value')
+
             if name == 'Amount':
                 amount = value
             elif name == 'MpesaReceiptNumber':
                 mpesa_receipt = value
             elif name == 'PhoneNumber':
-                phone = str(value)
+                phone = normalize_phone(value)
 
-        print(f'STK payment: KES {amount} from {phone}, receipt: {mpesa_receipt}')
+        # ✅ DUPLICATE PROTECTION
+        if is_duplicate(mpesa_receipt):
+            print('Duplicate STK ignored')
+            return jsonify({'ResultCode': 0}), 200
+
+        # ⚠️ TEMP USER MAPPING
+        user = User.query.first()
+
+        if user:
+            record_transaction(
+                user_id=user.id,
+                amount=float(amount),
+                phone=phone,
+                notes=f'STK Payment {mpesa_receipt}',
+                category='M-Pesa',
+                transaction_type=TransactionType.expense
+            )
+
+        print(f'STK payment saved: {mpesa_receipt}')
         return jsonify({'ResultCode': 0, 'ResultDesc': 'Accepted'}), 200
 
     except Exception as e:
@@ -175,13 +207,15 @@ def mpesa_callback():
         return jsonify({'ResultCode': 0, 'ResultDesc': 'Accepted'}), 200
 
 
+# ================= SIMULATE =================
+
 @mpesa_bp.route('/simulate', methods=['POST'])
 @jwt_required()
 def simulate_payment():
     user_id = get_jwt_identity()
     data = request.get_json()
 
-    phone = data.get('phone', '254700000000')
+    phone = normalize_phone(data.get('phone', '254700000000'))
     amount = data.get('amount')
     category = data.get('category', 'M-Pesa')
     description = data.get('description', '')
@@ -201,6 +235,8 @@ def simulate_payment():
     }), 201
 
 
+# ================= GET ACCOUNTS =================
+
 @mpesa_bp.route('/accounts', methods=['GET'])
 @jwt_required()
 def get_accounts():
@@ -208,6 +244,8 @@ def get_accounts():
     accounts = MpesaAccount.query.filter_by(user_id=user_id).all()
     return jsonify([a.to_dict() for a in accounts]), 200
 
+
+# ================= ADD ACCOUNT =================
 
 @mpesa_bp.route('/accounts', methods=['POST'])
 @jwt_required()
@@ -217,10 +255,13 @@ def add_account():
 
     account_type = data.get('account_type')
     shortcode = data.get('shortcode')
-    account_name = data.get('account_name')
+    account_name = data.get('account_name', '')
 
-    if not account_type or not shortcode or not account_name:
-        return jsonify({'error': 'Account type, shortcode and name are required'}), 400
+    if not account_type or not shortcode:
+        return jsonify({'error': 'Account type and shortcode required'}), 400
+
+    if account_type == 'paybill' and not account_name:
+        return jsonify({'error': 'Account name required for paybill'}), 400
 
     if account_type not in ['till', 'paybill']:
         return jsonify({'error': 'Account type must be till or paybill'}), 400
@@ -229,6 +270,7 @@ def add_account():
         user_id=user_id,
         shortcode=shortcode
     ).first()
+
     if existing:
         return jsonify({'error': 'This shortcode is already registered'}), 409
 
@@ -238,6 +280,7 @@ def add_account():
         shortcode=shortcode,
         account_name=account_name
     )
+
     db.session.add(account)
     db.session.commit()
 
@@ -246,10 +289,11 @@ def add_account():
         env = os.getenv('MPESA_ENV', 'sandbox')
         base_callback = os.getenv('MPESA_CALLBACK_URL', '').replace('/callback', '')
 
-        if env == 'sandbox':
-            url = 'https://sandbox.safaricom.co.ke/mpesa/c2b/v1/registerurl'
-        else:
-            url = 'https://api.safaricom.co.ke/mpesa/c2b/v1/registerurl'
+        url = (
+            'https://sandbox.safaricom.co.ke/mpesa/c2b/v1/registerurl'
+            if env == 'sandbox'
+            else 'https://api.safaricom.co.ke/mpesa/c2b/v1/registerurl'
+        )
 
         payload = {
             'ShortCode': shortcode,
@@ -258,7 +302,7 @@ def add_account():
             'ValidationURL': f'{base_callback}/c2b-validation'
         }
 
-        response = requests.post(
+        requests.post(
             url,
             json=payload,
             headers={
@@ -266,16 +310,17 @@ def add_account():
                 'Content-Type': 'application/json'
             }
         )
-        print(f'Register URL response: {response.json()}')
 
     except Exception as e:
-        print(f'Register URL error (account saved anyway): {e}')
+        print(f'Register URL error: {e}')
 
     return jsonify({
-        'message': f'{account_type.title()} number registered successfully',
+        'message': f'{account_type.title()} registered successfully',
         'account': account.to_dict()
     }), 201
 
+
+# ================= DELETE ACCOUNT =================
 
 @mpesa_bp.route('/accounts/<int:id>', methods=['DELETE'])
 @jwt_required()
@@ -288,8 +333,11 @@ def delete_account(id):
 
     db.session.delete(account)
     db.session.commit()
+
     return jsonify({'message': 'Account removed'}), 200
 
+
+# ================= C2B VALIDATION =================
 
 @mpesa_bp.route('/c2b-validation', methods=['POST'])
 def c2b_validation():
@@ -297,6 +345,8 @@ def c2b_validation():
     print(f'C2B Validation: {data}')
     return jsonify({'ResultCode': 0, 'ResultDesc': 'Accepted'}), 200
 
+
+# ================= C2B CONFIRMATION =================
 
 @mpesa_bp.route('/c2b-confirmation', methods=['POST'])
 def c2b_confirmation():
@@ -306,10 +356,13 @@ def c2b_confirmation():
     try:
         amount = data.get('TransAmount')
         trans_id = data.get('TransID')
-        msisdn = data.get('MSISDN')
-        bill_ref = data.get('BillRefNumber', '')
-        first_name = data.get('FirstName', '')
+        msisdn = normalize_phone(data.get('MSISDN'))
         shortcode = data.get('BusinessShortCode')
+
+        # ✅ DUPLICATE PROTECTION
+        if is_duplicate(trans_id):
+            print('Duplicate C2B ignored')
+            return jsonify({'ResultCode': 0}), 200
 
         account = MpesaAccount.query.filter_by(
             shortcode=str(shortcode),
@@ -317,21 +370,18 @@ def c2b_confirmation():
         ).first()
 
         if account:
-            notes = f'M-Pesa C2B from {msisdn} ({first_name}). Ref: {bill_ref}. Receipt: {trans_id}'
+            notes = f'M-Pesa C2B {trans_id}'
             record_transaction(
                 user_id=account.user_id,
                 amount=float(amount),
                 phone=msisdn,
                 notes=notes,
-                category='Sales',
+                category='M-Pesa',
                 transaction_type=TransactionType.income
             )
-            print(f'C2B income recorded: KES {amount} from {msisdn}')
-        else:
-            print(f'No account found for shortcode {shortcode}')
 
         return jsonify({'ResultCode': 0, 'ResultDesc': 'Accepted'}), 200
 
     except Exception as e:
-        print(f'C2B confirmation error: {e}')
+        print(f'C2B error: {e}')
         return jsonify({'ResultCode': 0, 'ResultDesc': 'Accepted'}), 200
