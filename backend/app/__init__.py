@@ -20,7 +20,16 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
 
+
+    
+
     db.init_app(app)
+
+
+    @app.route('/api/health')
+    def health_check():
+        return {"status": "ok"}, 200
+
     migrate.init_app(app, db)
     jwt.init_app(app)
 
