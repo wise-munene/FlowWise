@@ -9,7 +9,7 @@ export default function Reports() {
     const token = localStorage.getItem('access_token')
 
     const buildUrl = (type: 'csv' | 'pdf') => {
-        let url = `${import.meta.env.VITE_API_URL}/reports/${type}`
+        let url = `http://127.0.0.1:5000/api/reports/${type}`
         const params = []
         if (startDate) params.push(`start_date=${startDate}`)
         if (endDate) params.push(`end_date=${endDate}`)
