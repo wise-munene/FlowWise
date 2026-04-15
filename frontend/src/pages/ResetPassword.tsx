@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate, useSearchParams, Link } from 'react-router-dom'
+import { useNavigate, useParams, Link } from 'react-router-dom'
 import api from '../api/axios'
 
 export default function ResetPassword() {
@@ -7,9 +7,8 @@ export default function ResetPassword() {
     const [confirm, setConfirm] = useState('')
     const [error, setError] = useState('')
     const [loading, setLoading] = useState(false)
-    const [searchParams] = useSearchParams()
+    const { token } = useParams()
     const navigate = useNavigate()
-    const token = searchParams.get('token')
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -20,7 +19,7 @@ export default function ResetPassword() {
         }
         setLoading(true)
         try {
-            await api.post('/auth/reset-password', { token, password })
+            await api.post(`/auth/reset-password/${token}`, { password })
             navigate('/login')
         } catch (err: any) {
             setError(err.response?.data?.error || 'Something went wrong')

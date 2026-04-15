@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 const api = axios.create({
-    baseURL: 'http://127.0.0.1:5000/api',
+    baseURL: import.meta.env.VITE_API_URL || "http://127.0.0.1:5000/api"
 })
 
 api.interceptors.request.use((config) => {
@@ -15,11 +15,22 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
     (response) => response,
     (error) => {
-        if (error.response?.status === 401) {
+        // ✅ Handle network errors
+        if (!error.response) {
+            console.error("Network error or server down")
+            return Promise.reject(error)
+        }
+
+        // ✅ Handle unauthorized
+        if (error.response.status === 401) {
             localStorage.removeItem('access_token')
             localStorage.removeItem('user')
             window.location.href = '/login'
         }
+
+        // ✅ Log other errors
+        console.error("API Error:", error.response.data || error.message)
+
         return Promise.reject(error)
     }
 )

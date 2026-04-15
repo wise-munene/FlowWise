@@ -27,7 +27,7 @@ export default function Home() {
     try {
         await emailjs.send(
             'service_9pj6uei',
-            'template_44colwr',
+            'template_6t3ool3',
             templateParams,
             '7nJJoOeCr9Jxb5wnx'
         )

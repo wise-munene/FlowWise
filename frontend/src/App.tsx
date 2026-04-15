@@ -19,10 +19,10 @@ export default function App() {
                 <Routes>
                     <Route path="/" element={<Home />} />
                     <Route path="/login" element={<Login />} />
-                    <Route path="/login" element={<Login />} />
+                    
                     <Route path="/signup" element={<Signup />} />
                     <Route path="/forgot-password" element={<ForgotPassword />} />
-                    <Route path="/reset-password" element={<ResetPassword />} />
+                    <Route path="/reset-password/:token" element={<ResetPassword />} />
                     <Route path="/dashboard" element={
                         <ProtectedRoute><Dashboard /></ProtectedRoute>
                     } />
@@ -35,9 +35,11 @@ export default function App() {
                     <Route path="/reports" element={
                         <ProtectedRoute><Reports /></ProtectedRoute>
                     } />
+
                     <Route path="/mpesa" element={
                         <ProtectedRoute><Mpesa /></ProtectedRoute>
                     } />
+                    <Route path="*" element={<Navigate to="/" />} />
                     
                 </Routes>
             </AuthProvider>

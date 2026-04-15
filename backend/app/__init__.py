@@ -23,10 +23,10 @@ def create_app():
     db.init_app(app)
     migrate.init_app(app, db)
     jwt.init_app(app)
-    
+
     CORS(
     app,
-    origins=[os.getenv("FRONTEND_URL")],
+    origins=[app.config.get("FRONTEND_URL")],
     supports_credentials=True
 )
     mail.init_app(app)
