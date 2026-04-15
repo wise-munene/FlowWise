@@ -403,7 +403,16 @@ export default function Home() {
                         <a href="#contact" className="text-xs text-gray-400 hover:text-gray-600">Contact</a>
                         <Link to="/login" className="text-xs text-gray-400 hover:text-gray-600">Log in</Link>
                     </div>
-                    <p className="text-xs text-gray-400">© 2026 FlowWise. Built for Kenya.</p>
+                   <div className="flex flex-col md:flex-row items-center gap-2 text-xs text-gray-400">
+                    <a 
+                        href="mailto:flowwise2026@gmail.com" 
+                        className="hover:text-gray-600 transition-colors"
+                  >
+                        flowwise2026@gmail.com
+                  </a>
+                <span className="hidden md:inline">•</span>
+                <span>© 2026 FlowWise. Built for Kenya.</span>
+            </div>
                 </div>
             </footer>
 
