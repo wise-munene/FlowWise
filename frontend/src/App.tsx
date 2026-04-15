@@ -35,8 +35,6 @@ export default function App() {
                     <Route path="/reports" element={
                         <ProtectedRoute><Reports /></ProtectedRoute>
                     } />
-                    <Route path="/forgot-password" element={<ForgotPassword />} />
-                    <Route path="/reset-password" element={<ResetPassword />} />
                     <Route path="/mpesa" element={
                         <ProtectedRoute><Mpesa /></ProtectedRoute>
                     } />
