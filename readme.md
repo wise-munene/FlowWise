@@ -62,7 +62,7 @@ npm run dev
 
 ## Live Link
 
-[Live Application](#) *(Add your deployed link here)*
+[Live Application](#) *(https://flowwise-amber.vercel.app/)*
 
 ---
 
@@ -92,7 +92,7 @@ npm run dev
 ## Support and Contact Details
 
 If you encounter any issues or have questions, feel free to reach out:
-👉 github.com/your-username
+👉 github.com/wise-munene
 
 ---
 
