@@ -10,6 +10,7 @@ interface Transaction {
     date: string
     notes: string
     is_recurring: boolean
+    payment_method: string
 }
 
 const CATEGORIES = [
@@ -27,6 +28,7 @@ export default function Transactions() {
     const [form, setForm] = useState({
         type: 'expense',
         category: 'Other',
+        payment_method: 'Mpesa',
         amount: '',
         date: new Date().toISOString().split('T')[0],
         notes: '',
@@ -62,6 +64,7 @@ export default function Transactions() {
             setForm({
                 type: 'expense',
                 category: 'Other',
+                payment_method: 'Mpesa',
                 amount: '',
                 date: new Date().toISOString().split('T')[0],
                 notes: '',
@@ -77,6 +80,7 @@ export default function Transactions() {
         setForm({
             type: t.type,
             category: t.category,
+            payment_method: t.payment_method,
             amount: String(t.amount),
             date: t.date,
             notes: t.notes || '',
@@ -137,6 +141,19 @@ export default function Transactions() {
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Payment Method
+                                    </label>
+                                    <select
+                                        value={form.payment_method}
+                                        onChange={(e) => setForm({ ...form, payment_method: e.target.value })}
+                                        className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    >
+                                        <option value="Mpesa">Mpesa</option>
+                                        <option value="Cash">Cash</option>
+                                    </select>
+                                    </div>
                                 <select
                                     value={form.category}
                                     onChange={(e) => setForm({ ...form, category: e.target.value })}
@@ -222,7 +239,9 @@ export default function Transactions() {
                                     <div className="flex items-center gap-4">
                                         <div className={`w-2 h-2 rounded-full ${t.type === 'income' ? 'bg-green-500' : 'bg-red-500'}`} />
                                         <div>
-                                            <p className="text-sm font-medium text-gray-800">{t.category}</p>
+                                            <p className="text-sm font-medium text-gray-800">
+                                                 {t.category} • {t.payment_method}
+                                            </p>
                                             <p className="text-xs text-gray-400">{t.date} {t.notes && `· ${t.notes}`}</p>
                                         </div>
                                     </div>
