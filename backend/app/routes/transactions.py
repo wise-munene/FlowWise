@@ -22,6 +22,7 @@ def get_transactions():
         'id': t.id,
         'type': t.type.value,
         'category': t.category,
+        'payment_method': t.payment_method,
         'amount': float(t.amount),
         'date': t.date.strftime('%Y-%m-%d'),
         'notes': t.notes,
@@ -46,6 +47,7 @@ def create_transaction():
     date_str = data.get('date')
     notes = data.get('notes', '')
     is_recurring = data.get('is_recurring', False)
+    payment_method = data.get('payment_method', 'Mpesa')
 
     if not type_str or not category or not amount or not date_str:
         return jsonify({'error': 'Type, category, amount and date are required'}), 400
@@ -74,6 +76,7 @@ def create_transaction():
         user_id=user_id,
         type=transaction_type,
         category=category,
+        payment_method=payment_method,
         amount=amount,
         date=date,
         notes=notes,
