@@ -16,6 +16,7 @@ export default function Mpesa() {
     const [loading, setLoading] = useState(false)
     const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle')
     const [message, setMessage] = useState('')
+    const [category, setCategory] = useState('Other')
 
     const [accounts, setAccounts] = useState<MpesaAccount[]>([])
     const [accountType, setAccountType] = useState<'till' | 'paybill'>('till')
@@ -46,8 +47,9 @@ export default function Mpesa() {
             const response = await api.post('/mpesa/stk-push', {
                 phone,
                 amount: parseFloat(amount),
-                account_ref: 'FlowWise',
-                description
+                account_ref: 'category', // can be used to identify the transaction in callbacks
+                description,
+                category
             })
             setMessage(response.data.message)
             setStatus('success')
@@ -156,6 +158,17 @@ export default function Mpesa() {
                             placeholder="Payment for services"
                             className="w-full px-4 py-2.5 border rounded-lg"
                         />
+                        <select
+                            value={category}
+                            onChange={(e) => setCategory(e.target.value)}
+                            className="w-full px-4 py-2.5 border rounded-lg"
+                        >
+                            <option value="Rent">Rent</option>
+                            <option value="Groceries">Groceries</option>
+                            <option value="Transport">Transport</option>
+                            <option value="Bills">Bills</option>
+                            <option value="Other">Other</option>
+                        </select>
 
                         <button
                             disabled={loading}

@@ -30,6 +30,20 @@ def is_duplicate(receipt):
     ).first() is not None
 
 
+def record_transaction(user_id, amount, phone, notes, category, transaction_type):
+    transaction = Transaction(
+        user_id=user_id,
+        type=transaction_type,
+        category=category,
+        payment_method="Mpesa",
+        amount=amount,
+        date=datetime.utcnow().date(),
+        notes=notes
+    )
+    db.session.add(transaction)
+    db.session.commit()
+
+
 def get_mpesa_token():
     consumer_key = os.getenv('MPESA_CONSUMER_KEY')
     consumer_secret = os.getenv('MPESA_CONSUMER_SECRET')
@@ -56,30 +70,6 @@ def generate_password():
     return password, timestamp
 
 
-def record_transaction(user_id, amount, phone, notes, category='M-Pesa',
-                       transaction_type=TransactionType.income):
-    transaction = Transaction(
-        user_id=user_id,
-        type=transaction_type,
-        category=category,
-        amount=amount,
-        date=datetime.utcnow().date(),
-        notes=notes
-    )
-    db.session.add(transaction)
-
-    if transaction_type == TransactionType.expense:
-        budget = Budget.query.filter_by(
-            user_id=user_id,
-            category=category
-        ).first()
-        if budget:
-            budget.spent_amount = float(budget.spent_amount) + float(amount)
-
-    db.session.commit()
-    return transaction
-
-
 # ================= STK PUSH =================
 
 @mpesa_bp.route('/stk-push', methods=['POST'])
@@ -90,8 +80,8 @@ def stk_push():
 
     phone = normalize_phone(data.get('phone'))
     amount = data.get('amount')
-    account_ref = data.get('account_ref', 'FlowWise')
     description = data.get('description', 'Payment')
+    category = data.get('category', 'Other')
 
     if not phone or not amount:
         return jsonify({'error': 'Phone number and amount are required'}), 400
@@ -117,7 +107,7 @@ def stk_push():
             'PartyB': os.getenv('MPESA_SHORTCODE'),
             'PhoneNumber': phone,
             'CallBackURL': os.getenv('MPESA_CALLBACK_URL'),
-            'AccountReference': account_ref,
+            'AccountReference': category,  # not used later, but okay to keep
             'TransactionDesc': description
         }
 
@@ -134,9 +124,25 @@ def stk_push():
         print(f'STK Push response: {result}')
 
         if result.get('ResponseCode') == '0':
+            checkout_id = result.get('CheckoutRequestID')
+
+            # ✅ SAVE TRANSACTION BEFORE CALLBACK
+            transaction = Transaction(
+                user_id=user_id,
+                type=TransactionType.expense,
+                category=category,
+                payment_method="Mpesa",
+                amount=amount,
+                date=datetime.utcnow().date(),
+                notes=f"PENDING STK {checkout_id}"
+            )
+
+            db.session.add(transaction)
+            db.session.commit()
+
             return jsonify({
                 'message': 'Payment request sent to phone',
-                'checkout_request_id': result.get('CheckoutRequestID')
+                'checkout_request_id': checkout_id
             }), 200
         else:
             return jsonify({
@@ -161,7 +167,7 @@ def mpesa_callback():
         result_code = stk_callback.get('ResultCode')
 
         if result_code != 0:
-            return jsonify({'ResultCode': 0, 'ResultDesc': 'Accepted'}), 200
+            return jsonify({'ResultCode': 0}), 200
 
         metadata = stk_callback.get('CallbackMetadata', {})
         items = metadata.get('Item', [])
@@ -181,30 +187,27 @@ def mpesa_callback():
             elif name == 'PhoneNumber':
                 phone = normalize_phone(value)
 
-        # ✅ DUPLICATE PROTECTION
         if is_duplicate(mpesa_receipt):
             print('Duplicate STK ignored')
             return jsonify({'ResultCode': 0}), 200
 
-        # ⚠️ TEMP USER MAPPING
-        user = User.query.first()
+        checkout_id = stk_callback.get('CheckoutRequestID')
 
-        if user:
-            record_transaction(
-                user_id=user.id,
-                amount=float(amount),
-                phone=phone,
-                notes=f'STK Payment {mpesa_receipt}',
-                category='M-Pesa',
-                transaction_type=TransactionType.expense
-            )
+        # ✅ FIND EXISTING TRANSACTION
+        transaction = Transaction.query.filter(
+            Transaction.notes.like(f"%{checkout_id}%")
+        ).first()
+
+        if transaction:
+            transaction.notes = f"STK Payment {mpesa_receipt}"
+            db.session.commit()
 
         print(f'STK payment saved: {mpesa_receipt}')
-        return jsonify({'ResultCode': 0, 'ResultDesc': 'Accepted'}), 200
+        return jsonify({'ResultCode': 0}), 200
 
     except Exception as e:
         print(f'STK callback error: {e}')
-        return jsonify({'ResultCode': 0, 'ResultDesc': 'Accepted'}), 200
+        return jsonify({'ResultCode': 0}), 200
 
 
 # ================= SIMULATE =================
@@ -217,7 +220,7 @@ def simulate_payment():
 
     phone = normalize_phone(data.get('phone', '254700000000'))
     amount = data.get('amount')
-    category = data.get('category', 'M-Pesa')
+    category = data.get('category', 'Other')
     description = data.get('description', '')
     transaction_type = data.get('type', 'expense')
 
@@ -227,13 +230,23 @@ def simulate_payment():
     t_type = TransactionType.income if transaction_type == 'income' else TransactionType.expense
     notes = f'M-Pesa from {phone}. {description}'.strip()
 
-    transaction = record_transaction(user_id, amount, phone, notes, category, t_type)
+    transaction = Transaction(
+        user_id=user_id,
+        type=t_type,
+        category=category,
+        payment_method="Mpesa",
+        amount=amount,
+        date=datetime.utcnow().date(),
+        notes=notes
+    )
+
+    db.session.add(transaction)
+    db.session.commit()
 
     return jsonify({
         'message': 'M-Pesa transaction recorded successfully',
         'transaction_id': transaction.id
     }), 201
-
 
 # ================= GET ACCOUNTS =================
 
