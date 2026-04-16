@@ -47,7 +47,7 @@ export default function Mpesa() {
             const response = await api.post('/mpesa/stk-push', {
                 phone,
                 amount: parseFloat(amount),
-                account_ref: 'category', // can be used to identify the transaction in callbacks
+                account_ref: category, // can be used to identify the transaction in callbacks
                 description,
                 category
             })
@@ -70,13 +70,15 @@ export default function Mpesa() {
             const response = await api.post('/mpesa/simulate', {
                 phone,
                 amount: parseFloat(amount),
-                description
+                description,
+                category
             })
             setMessage(response.data.message)
             setStatus('success')
             setPhone('')
             setAmount('')
             setDescription('')
+            setCategory('Other')
         } catch (err: any) {
             setMessage(err.response?.data?.error || 'Simulation failed')
             setStatus('error')
