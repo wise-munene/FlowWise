@@ -52,13 +52,16 @@ def create_budget():
 
     # calculate existing spending for this category
     from app.models.transaction import Transaction, TransactionType
-    existing_spending = db.session.query(
-        db.func.sum(Transaction.amount)
-    ).filter_by(
-        user_id=user_id,
-        category=category,
-        type=TransactionType.expense
-    ).scalar() or 0
+
+    transactions = Transaction.query.filter_by(
+    user_id=user_id,
+    type=TransactionType.expense
+).all()
+    existing_spending = sum(
+    float(t.amount)
+    for t in transactions
+    if t.category == category
+)
 
     budget = Budget(
         user_id=user_id,
@@ -88,6 +91,9 @@ def update_budget(id):
         return jsonify({'error': 'Budget not found'}), 404
 
     data = request.get_json()
+
+    if 'category' in data:
+        budget.category = data['category']
 
     if 'budget_amount' in data:
         budget.budget_amount = data['budget_amount']

@@ -38,39 +38,15 @@ def create_transaction():
     user_id = get_jwt_identity()
     data = request.get_json()
 
-    if not data:
-        return jsonify({'error': 'No data provided'}), 400
-
     type_str = data.get('type')
     category = data.get('category')
-    amount = data.get('amount')
-    date_str = data.get('date')
+    amount = float(data.get('amount'))
+    date = datetime.strptime(data.get('date'), '%Y-%m-%d').date()
     notes = data.get('notes', '')
     is_recurring = data.get('is_recurring', False)
     payment_method = data.get('payment_method', 'Mpesa')
 
-    if not type_str or not category or not amount or not date_str:
-        return jsonify({'error': 'Type, category, amount and date are required'}), 400
-
-    # ✅ Validate type
-    try:
-        transaction_type = TransactionType(type_str)
-    except ValueError:
-        return jsonify({'error': 'Type must be income or expense'}), 400
-
-    # ✅ Validate amount
-    try:
-        amount = float(amount)
-        if amount <= 0:
-            raise ValueError
-    except:
-        return jsonify({'error': 'Amount must be a positive number'}), 400
-
-    # ✅ Validate date
-    try:
-        date = datetime.strptime(date_str, '%Y-%m-%d').date()
-    except ValueError:
-        return jsonify({'error': 'Date must be in YYYY-MM-DD format'}), 400
+    transaction_type = TransactionType(type_str)
 
     transaction = Transaction(
         user_id=user_id,
@@ -85,7 +61,7 @@ def create_transaction():
 
     db.session.add(transaction)
 
-    # ✅ Budget update
+    # ✅ DIRECT MATCH (NO MAPPING)
     if transaction_type == TransactionType.expense:
         budget = Budget.query.filter_by(
             user_id=user_id,
@@ -97,10 +73,7 @@ def create_transaction():
 
     db.session.commit()
 
-    return jsonify({
-        'message': 'Transaction created successfully',
-        'id': transaction.id
-    }), 201
+    return jsonify({'message': 'Transaction created', 'id': transaction.id}), 201
 
 
 # ================= UPDATE =================
@@ -110,42 +83,24 @@ def update_transaction(id):
     user_id = get_jwt_identity()
     transaction = Transaction.query.filter_by(id=id, user_id=user_id).first()
 
-    if not transaction:
-        return jsonify({'error': 'Transaction not found'}), 404
+    old_amount = float(transaction.amount)
 
     data = request.get_json()
-
-    if not data:
-        return jsonify({'error': 'No data provided'}), 400
-
-    old_amount = float(transaction.amount)
 
     if 'category' in data:
         transaction.category = data['category']
 
     if 'amount' in data:
-        try:
-            new_amount = float(data['amount'])
-            if new_amount <= 0:
-                raise ValueError
-            transaction.amount = new_amount
-        except:
-            return jsonify({'error': 'Amount must be positive'}), 400
+        transaction.amount = float(data['amount'])
 
     if 'date' in data:
-        try:
-            transaction.date = datetime.strptime(data['date'], '%Y-%m-%d').date()
-        except:
-            return jsonify({'error': 'Invalid date format'}), 400
+        transaction.date = datetime.strptime(data['date'], '%Y-%m-%d').date()
 
     if 'notes' in data:
         transaction.notes = data['notes']
 
-    if 'is_recurring' in data:
-        transaction.is_recurring = data['is_recurring']
-
-    # ✅ Fix budget consistency
-    if transaction.type == TransactionType.expense and 'amount' in data:
+    # ✅ FIX BUDGET
+    if transaction.type == TransactionType.expense:
         budget = Budget.query.filter_by(
             user_id=user_id,
             category=transaction.category
@@ -157,7 +112,7 @@ def update_transaction(id):
 
     db.session.commit()
 
-    return jsonify({'message': 'Transaction updated successfully'}), 200
+    return jsonify({'message': 'Transaction updated'}), 200
 
 
 # ================= DELETE =================
@@ -166,9 +121,6 @@ def update_transaction(id):
 def delete_transaction(id):
     user_id = get_jwt_identity()
     transaction = Transaction.query.filter_by(id=id, user_id=user_id).first()
-
-    if not transaction:
-        return jsonify({'error': 'Transaction not found'}), 404
 
     if transaction.type == TransactionType.expense:
         budget = Budget.query.filter_by(
@@ -185,4 +137,4 @@ def delete_transaction(id):
     db.session.delete(transaction)
     db.session.commit()
 
-    return jsonify({'message': 'Transaction deleted successfully'}), 200
+    return jsonify({'message': 'Transaction deleted'}), 200

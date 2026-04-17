@@ -24,6 +24,7 @@ export default function Transactions() {
     const [showForm, setShowForm] = useState(false)
     const [editingId, setEditingId] = useState<number | null>(null)
     const [error, setError] = useState('')
+    const [customCategory, setCustomCategory] = useState('')
 
     const [form, setForm] = useState({
         type: 'expense',
@@ -51,15 +52,25 @@ export default function Transactions() {
     }, [])
 
     const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault()
-        setError('')
-        try {
-            if (editingId) {
-                await api.put(`/transactions/${editingId}`, form)
-            } else {
-                await api.post('/transactions/', form)
-            }
-            setShowForm(false)
+  e.preventDefault()
+
+  // Reset error state
+    setError('')
+  const finalCategory =
+    form.category === "Other" ? customCategory : form.category
+
+  // OPTIONAL SAFETY
+  if (form.category === "Other" && !customCategory.trim()) {
+    alert("Please enter a category")
+    return
+  }
+
+  try {
+    await api.post('/transactions/', {
+      ...form,
+      category: finalCategory // THIS IS THE FIX
+    })
+            
             setEditingId(null)
             setForm({
                 type: 'expense',
@@ -70,6 +81,9 @@ export default function Transactions() {
                 notes: '',
                 is_recurring: false
             })
+
+            setCustomCategory('')
+            setShowForm(false)
             fetchTransactions()
         } catch (err: any) {
             setError(err.response?.data?.error || 'Something went wrong')
@@ -128,6 +142,9 @@ export default function Transactions() {
                             </div>
                         )}
                         <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            
+                            
+                            {/* TYPE */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
                                 <select
@@ -135,35 +152,53 @@ export default function Transactions() {
                                     onChange={(e) => setForm({ ...form, type: e.target.value })}
                                     className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 >
+                                  
                                     <option value="income">Income</option>
                                     <option value="expense">Expense</option>
                                 </select>
                             </div>
+
+
+                            {/* PAYMENT METHOD */}
                             <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Payment Method
+                                </label>
+                                <select
+                                    value={form.payment_method}
+                                    onChange={(e) => setForm({ ...form, payment_method: e.target.value })}
+                                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                >
+                                    <option value="Mpesa">Mpesa</option>
+                                    <option value="Cash">Cash</option>
+                                </select>
+                            </div>
+
+                            {/* CATEGORY */}
+                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Payment Method
-                                    </label>
-                                    <select
-                                        value={form.payment_method}
-                                        onChange={(e) => setForm({ ...form, payment_method: e.target.value })}
-                                        className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    >
-                                        <option value="Mpesa">Mpesa</option>
-                                        <option value="Cash">Cash</option>
-                                    </select>
-                                    </div>
                                 <select
                                     value={form.category}
                                     onChange={(e) => setForm({ ...form, category: e.target.value })}
                                     className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 >
-                                    {CATEGORIES.map(c => (
+                                  {CATEGORIES.map(c => (
                                         <option key={c} value={c}>{c}</option>
                                     ))}
                                 </select>
+
+                                {form.category === "Other" && (
+                                    <input
+                                        type="text"
+                                        placeholder="Enter custom category (e.g. Netflix, Gym)"
+                                        value={customCategory}
+                                        onChange={(e) => setCustomCategory(e.target.value)}
+                                        className="w-full mt-2 px-4 py-2.5 border border-gray-200 rounded-lg"
+                                    />
+                                )}
                             </div>
+
+                             {/* AMOUNT */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Amount (KES)</label>
                                 <input
@@ -175,6 +210,8 @@ export default function Transactions() {
                                     className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 />
                             </div>
+
+                             {/* DATE */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
                                 <input
@@ -185,6 +222,8 @@ export default function Transactions() {
                                     className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 />
                             </div>
+
+                            {/* NOTES */}
                             <div className="md:col-span-2">
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
                                 <input
@@ -207,6 +246,9 @@ export default function Transactions() {
                                     Recurring transaction
                                 </label>
                             </div>
+
+                                {/* SUBMIT */}
+                            
                             <div className="md:col-span-2 flex gap-3">
                                 <button
                                     type="submit"

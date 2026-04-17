@@ -13,10 +13,15 @@ interface Budget {
     is_exceeded: boolean
     is_near_limit: boolean
 }
-
 const CATEGORIES = [
-    'Rent', 'Utilities', 'Groceries', 'Transport',
-    'Salaries', 'Healthcare', 'Entertainment', 'Other'
+    'Rent',
+    'Utilities',
+    'Groceries',
+    'Transport',
+    'Salaries',
+    'Healthcare',
+    'Entertainment',
+    'Other'
 ]
 
 export default function Budgets() {
@@ -24,6 +29,10 @@ export default function Budgets() {
     const [loading, setLoading] = useState(true)
     const [showForm, setShowForm] = useState(false)
     const [error, setError] = useState('')
+    const [customCategory, setCustomCategory] = useState('')
+    const [editingId, setEditingId] = useState<number | null>(null)
+
+    
 
     const [form, setForm] = useState({
         category: 'Rent',
@@ -51,9 +60,23 @@ export default function Budgets() {
         e.preventDefault()
         setError('')
         try {
-            await api.post('/budgets/', form)
+          const finalCategory =
+            form.category === "Other" ? customCategory : form.category
+
+        const payload = {
+        ...form,
+        category: finalCategory
+        }
+
+        if (editingId) {
+        await api.put(`/budgets/${editingId}`, payload)
+        } else {
+        await api.post('/budgets/', payload)
+        }
+
             setShowForm(false)
             setForm({ category: 'Rent', budget_amount: '', period: 'monthly', alert_threshold: 0.80 })
+            setCustomCategory('')
             fetchBudgets()
         } catch (err: any) {
             setError(err.response?.data?.error || 'Something went wrong')
@@ -75,6 +98,17 @@ export default function Budgets() {
         if (budget.is_near_limit) return 'bg-amber-400'
         return 'bg-blue-500'
     }
+
+    const handleEdit = (b: Budget) => {
+    setForm({
+        category: b.category,
+        budget_amount: String(b.budget_amount),
+        period: b.period,
+        alert_threshold: b.alert_threshold
+    })
+    setEditingId(b.id)
+    setShowForm(true)
+}
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -112,6 +146,15 @@ export default function Budgets() {
                                         <option key={c} value={c}>{c}</option>
                                     ))}
                                 </select>
+                                 {form.category === "Other" && (
+                                <input
+                                    type="text"
+                                    placeholder="Enter custom budget (e.g. Netflix, Gym)"
+                                    value={customCategory}
+                                    onChange={(e) => setCustomCategory(e.target.value)}
+                                    className="w-full mt-2 px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                            )}
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Period</label>
@@ -154,7 +197,7 @@ export default function Budgets() {
                                     type="submit"
                                     className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-6 py-2.5 rounded-lg transition-colors"
                                 >
-                                    Save
+                                    {editingId ? 'Update' : 'Save'}
                                 </button>
                                 <button
                                     type="button"
@@ -206,6 +249,12 @@ export default function Budgets() {
                                         >
                                             Delete
                                         </button>
+                                        <button
+                                        onClick={() => handleEdit(b)}
+                                        className="text-blue-500 text-xs hover:underline"
+                                    >
+                                        Edit
+                                    </button>
                                     </div>
                                 </div>
                                 {/* Progress bar */}

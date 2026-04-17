@@ -145,6 +145,32 @@ export default function Home() {
                 </div>
             </section>
 
+
+            {/* Demo Video */}
+            <section className="py-16 px-6 bg-white">
+                <div className="max-w-5xl mx-auto text-center">
+
+                    <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">
+                        See FlowWise in action
+                    </h2>
+
+                    <p className="text-sm text-gray-500 mb-10 max-w-xl mx-auto">
+                        Watch how you can track your spending, categorize transactions, and understand your money in seconds.
+                    </p>
+
+                    <div className="relative w-full aspect-video rounded-2xl overflow-hidden shadow-lg border border-gray-100">
+                        <video
+                            controls
+                            className="w-full h-full object-cover"
+                        >
+                            <source src="/demo.mp4" type="video/mp4" />
+                            Your browser does not support the video tag.
+                        </video>
+                    </div>
+
+                </div>
+            </section>
+
             {/* Stats bar */}
             <section className="border-y border-gray-100 bg-white py-8">
                 <div className="max-w-4xl mx-auto px-6">
