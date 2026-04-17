@@ -83,6 +83,9 @@ def stk_push():
     description = data.get('description', 'Payment')
     category = data.get('category', 'Other')
 
+    if category == "Other" and description:
+        category = description.strip().capitalize()[:20]
+
     if not phone or not amount:
         return jsonify({'error': 'Phone number and amount are required'}), 400
 
@@ -223,6 +226,10 @@ def simulate_payment():
     category = data.get('category', 'Other')
     description = data.get('description', '')
     transaction_type = data.get('type', 'expense')
+
+
+    if category == "Other" and description:
+     category = description.strip().capitalize()[:20]
 
     if not amount:
         return jsonify({'error': 'Amount is required'}), 400

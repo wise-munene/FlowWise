@@ -153,13 +153,17 @@ export default function Mpesa() {
                             />
                         </div>
 
-                        <input
-                            type="text"
-                            value={description}
-                            onChange={(e) => setDescription(e.target.value)}
-                            placeholder="Payment for services"
-                            className="w-full px-4 py-2.5 border rounded-lg"
-                        />
+                            <input
+                        type="text"
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        placeholder={
+                            category === "Other"
+                                ? "Enter custom category (e.g. Gym, Netflix, Car wash)"
+                                : "Payment for services"
+                        }
+                        className="w-full px-4 py-2.5 border rounded-lg"
+                            />
                         <select
                             value={category}
                             onChange={(e) => setCategory(e.target.value)}
