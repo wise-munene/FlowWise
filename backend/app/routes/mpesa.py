@@ -36,6 +36,7 @@ def record_transaction(user_id, amount, phone, notes, category, transaction_type
         type=transaction_type,
         category=category,
         payment_method="Mpesa",
+        payment_channel="c2b",
         amount=amount,
         date=datetime.utcnow().date(),
         notes=notes
@@ -58,7 +59,8 @@ def get_mpesa_token():
     credentials = base64.b64encode(f'{consumer_key}:{consumer_secret}'.encode()).decode()
 
     response = requests.get(url, headers={'Authorization': f'Basic {credentials}'})
-    return response.json().get('access_token')
+    if response.status_code != 200:
+        raise Exception("Failed to get M-Pesa token")
 
 
 def generate_password():
@@ -135,6 +137,7 @@ def stk_push():
                 type=TransactionType.expense,
                 category=category,
                 payment_method="Mpesa",
+                payment_channel="stk",
                 amount=amount,
                 date=datetime.utcnow().date(),
                 notes=f"PENDING STK {checkout_id}"
@@ -171,6 +174,7 @@ def mpesa_callback():
 
         if result_code != 0:
             return jsonify({'ResultCode': 0}), 200
+        print(f"STK failed with code: {result_code}")
 
         metadata = stk_callback.get('CallbackMetadata', {})
         items = metadata.get('Item', [])
@@ -242,6 +246,7 @@ def simulate_payment():
         type=t_type,
         category=category,
         payment_method="Mpesa",
+        payment_channel="manual",
         amount=amount,
         date=datetime.utcnow().date(),
         notes=notes
@@ -396,8 +401,9 @@ def c2b_confirmation():
                 amount=float(amount),
                 phone=msisdn,
                 notes=notes,
-                category='M-Pesa',
-                transaction_type=TransactionType.income
+                category=account.account_name or"Mpesa",
+                transaction_type=TransactionType.income,
+                payment_channel="paybill"
             )
 
         return jsonify({'ResultCode': 0, 'ResultDesc': 'Accepted'}), 200

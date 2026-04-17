@@ -147,7 +147,7 @@ export default function Home() {
 
 
             {/* Demo Video */}
-            <section className="py-16 px-6 bg-white">
+            {/* <section className="py-16 px-6 bg-white">
                 <div className="max-w-5xl mx-auto text-center">
 
                     <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">
@@ -169,7 +169,7 @@ export default function Home() {
                     </div>
 
                 </div>
-            </section>
+            </section> */}
 
             {/* Stats bar */}
             <section className="border-y border-gray-100 bg-white py-8">

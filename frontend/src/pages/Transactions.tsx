@@ -11,6 +11,11 @@ interface Transaction {
     notes: string
     is_recurring: boolean
     payment_method: string
+
+    payment_channel?: string
+    till_number?: string
+    paybill_number?: string
+    account_reference?: string
 }
 
 const CATEGORIES = [
@@ -281,10 +286,20 @@ export default function Transactions() {
                                     <div className="flex items-center gap-4">
                                         <div className={`w-2 h-2 rounded-full ${t.type === 'income' ? 'bg-green-500' : 'bg-red-500'}`} />
                                         <div>
-                                            <p className="text-sm font-medium text-gray-800">
-                                                 {t.category} • {t.payment_method}
+                                           <p className="text-sm font-medium text-gray-800">
+                                                {t.category} • {t.payment_method}
+                                                {t.payment_channel === 'till' && t.till_number && (
+                                                    <span className="text-xs text-gray-500"> (Till {t.till_number})</span>
+                                                )}
+                                                {t.payment_channel === 'paybill' && t.paybill_number && (
+                                                    <span className="text-xs text-gray-500"> (Paybill {t.paybill_number})</span>
+                                                )}
                                             </p>
-                                            <p className="text-xs text-gray-400">{t.date} {t.notes && `· ${t.notes}`}</p>
+                                           <p className="text-xs text-gray-400">
+                                                {t.date}
+                                                {t.notes && ` · ${t.notes}`}
+                                                {t.payment_channel && ` · ${t.payment_channel}`}
+                                            </p>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-4">

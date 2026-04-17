@@ -45,6 +45,10 @@ def create_transaction():
     notes = data.get('notes', '')
     is_recurring = data.get('is_recurring', False)
     payment_method = data.get('payment_method', 'Mpesa')
+    payment_channel = data.get('payment_channel', 'manual')
+    till_number = data.get('till_number')
+    paybill_number = data.get('paybill_number')
+    account_reference = data.get('account_reference')
 
     transaction_type = TransactionType(type_str)
 
@@ -53,6 +57,10 @@ def create_transaction():
         type=transaction_type,
         category=category,
         payment_method=payment_method,
+        payment_channel=payment_channel,
+        till_number=till_number,
+        paybill_number=paybill_number,
+        account_reference=account_reference,
         amount=amount,
         date=date,
         notes=notes,

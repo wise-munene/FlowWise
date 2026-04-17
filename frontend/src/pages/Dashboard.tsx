@@ -4,7 +4,8 @@ import { useAuth } from '../context/AuthContext'
 import api from '../api/axios'
 import {
     BarChart, Bar, XAxis, YAxis, Tooltip, Legend,
-    PieChart, Pie, Cell, ResponsiveContainer
+    PieChart, Pie, Cell, ResponsiveContainer,
+    LineChart, Line
 } from 'recharts'
 
 interface Transaction {
@@ -61,6 +62,7 @@ export default function Dashboard() {
 
     const netBalance = totalIncome - totalExpense
 
+    // CATEGORY DATA
     const categoryData = transactions
         .filter(t => t.type === 'expense')
         .reduce((acc: any[], t) => {
@@ -73,6 +75,7 @@ export default function Dashboard() {
             return acc
         }, [])
 
+    // MONTHLY DATA
     const monthlyData = transactions.reduce((acc: any[], t) => {
         const month = t.date.substring(0, 7)
         const existing = acc.find(item => item.month === month)
@@ -88,6 +91,53 @@ export default function Dashboard() {
         }
         return acc
     }, []).sort((a, b) => a.month.localeCompare(b.month))
+
+    // WEEKLY SUMMARY
+    const today = new Date()
+    const oneWeekAgo = new Date()
+    oneWeekAgo.setDate(today.getDate() - 7)
+
+    const weeklyTransactions = transactions.filter(t =>
+        new Date(t.date) >= oneWeekAgo && t.type === 'expense'
+    )
+
+    const weeklyTotal = weeklyTransactions.reduce((sum, t) => sum + t.amount, 0)
+
+    const twoWeeksAgo = new Date()
+    twoWeeksAgo.setDate(today.getDate() - 14)
+
+    const lastWeekTransactions = transactions.filter(t => {
+        const d = new Date(t.date)
+        return d >= twoWeeksAgo && d < oneWeekAgo && t.type === 'expense'
+    })
+
+    const lastWeekTotal = lastWeekTransactions.reduce((sum, t) => sum + t.amount, 0)
+
+    const weeklyChange = lastWeekTotal
+        ? ((weeklyTotal - lastWeekTotal) / lastWeekTotal) * 100
+        : 0
+
+    // DAILY TREND
+    const dailyData = transactions.reduce((acc: any[], t) => {
+        if (t.type !== 'expense') return acc
+
+        const existing = acc.find(item => item.date === t.date)
+
+        if (existing) {
+            existing.amount += t.amount
+        } else {
+            acc.push({ date: t.date, amount: t.amount })
+        }
+
+        return acc
+    }, []).sort((a, b) => a.date.localeCompare(b.date))
+
+    // INSIGHT
+    const topCategory = categoryData.sort((a, b) => b.amount - a.amount)[0]
+
+    const insightMessage = topCategory
+        ? `You spent the most on ${topCategory.category} this period.`
+        : "No spending data yet."
 
     if (loading) {
         return (
@@ -105,26 +155,20 @@ export default function Dashboard() {
             <Navbar />
             <div className="max-w-6xl mx-auto px-6 py-8">
 
-                {/* Welcome */}
-                <div className="mb-8">
-                    <h2 className="text-2xl font-bold text-gray-900">
-                        Welcome back, {user?.name}
-                    </h2>
-                    <p className="text-gray-500 mt-1">
-                        Here's your financial overview
-                    </p>
-                </div>
+                <h2 className="text-2xl font-bold mb-6">
+                    Welcome back, {user?.name}
+                </h2>
 
-                {/* Alerts */}
+                {/* ALERTS */}
                 {alerts.length > 0 && (
                     <div className="mb-6 space-y-2">
                         {alerts.map((alert, i) => (
                             <div
                                 key={i}
-                                className={`p-4 rounded-lg border text-sm font-medium ${
+                                className={`p-4 rounded-lg ${
                                     alert.status === 'exceeded'
-                                        ? 'bg-red-50 border-red-200 text-red-700'
-                                        : 'bg-amber-50 border-amber-200 text-amber-700'
+                                        ? 'bg-red-100 text-red-700'
+                                        : 'bg-yellow-100 text-yellow-700'
                                 }`}
                             >
                                 {alert.message}
@@ -133,75 +177,157 @@ export default function Dashboard() {
                     </div>
                 )}
 
-                {/* Summary cards */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                    <div className="bg-white rounded-xl border border-gray-100 p-6">
-                        <p className="text-sm text-gray-500">Total income</p>
-                        <p className="text-2xl font-bold text-green-600 mt-1">
+                {/* SUMMARY */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div className="bg-white p-4 rounded shadow">
+                        <p>Total Income</p>
+                        <h3 className="text-green-600 font-bold">
                             KES {totalIncome.toLocaleString()}
-                        </p>
+                        </h3>
                     </div>
-                    <div className="bg-white rounded-xl border border-gray-100 p-6">
-                        <p className="text-sm text-gray-500">Total expenses</p>
-                        <p className="text-2xl font-bold text-red-500 mt-1">
+
+                    <div className="bg-white p-4 rounded shadow">
+                        <p>Total Expense</p>
+                        <h3 className="text-red-500 font-bold">
                             KES {totalExpense.toLocaleString()}
-                        </p>
+                        </h3>
                     </div>
-                    <div className="bg-white rounded-xl border border-gray-100 p-6">
-                        <p className="text-sm text-gray-500">Net balance</p>
-                        <p className={`text-2xl font-bold mt-1 ${netBalance >= 0 ? 'text-blue-600' : 'text-red-500'}`}>
+
+                    <div className="bg-white p-4 rounded shadow">
+                        <p>Balance</p>
+                        <h3 className="text-blue-600 font-bold">
                             KES {netBalance.toLocaleString()}
-                        </p>
+                        </h3>
                     </div>
                 </div>
 
-                {/* Charts */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                {/* WEEKLY */}
+                <div className="bg-white p-4 rounded shadow mb-6">
+                    <p>Weekly Spending</p>
+                    <h3 className="font-bold">
+                        KES {weeklyTotal.toLocaleString()}
+                    </h3>
+                    <p className="text-sm text-gray-500">
+                        {weeklyChange >= 0 ? '+' : ''}
+                        {weeklyChange.toFixed(1)}% from last week
+                    </p>
+                </div>
 
-                    {/* Bar chart */}
-                    <div className="bg-white rounded-xl border border-gray-100 p-6">
-                        <h3 className="text-sm font-semibold text-gray-700 mb-4">
-                            Income vs Expenses
-                        </h3>
-                        <ResponsiveContainer width="100%" height={250}>
-                            <BarChart data={monthlyData}>
-                                <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-                                <YAxis tick={{ fontSize: 11 }} />
-                                <Tooltip />
-                                <Legend />
-                                <Bar dataKey="income" fill="#10b981" name="Income" radius={[4, 4, 0, 0]} />
-                                <Bar dataKey="expense" fill="#ef4444" name="Expenses" radius={[4, 4, 0, 0]} />
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </div>
+                {/* INSIGHT */}
+                <div className="bg-blue-50 p-4 rounded mb-6">
+                    <p className="font-medium">💡 Insight</p>
+                    <p>{insightMessage}</p>
+                </div>
 
-                    {/* Pie chart */}
-                    <div className="bg-white rounded-xl border border-gray-100 p-6">
-                        <h3 className="text-sm font-semibold text-gray-700 mb-4">
-                            Expenses by category
-                        </h3>
-                        <ResponsiveContainer width="100%" height={250}>
+                {/* CHARTS */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+
+                    {/* BAR */}
+                    <div className="bg-white p-6 rounded-xl shadow">
+                    <h3 className="text-sm font-semibold text-gray-700 mb-4">
+                        Income vs Expenses
+                    </h3>
+
+                    <ResponsiveContainer width="100%" height={250}>
+                        <BarChart data={monthlyData} barCategoryGap="30%">
+                            <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                            <YAxis tick={{ fontSize: 11 }} />
+                            <Tooltip
+                                formatter={(value) => value != null ? `KES ${value.toLocaleString()}` : ''}
+                            />
+                            <Legend />
+
+                            <Bar
+                                dataKey="income"
+                                fill="#10b981"
+                                radius={[8, 8, 0, 0]}  // 👈 smooth top
+                            />
+
+                            <Bar
+                                dataKey="expense"
+                                fill="#ef4444"
+                                radius={[8, 8, 0, 0]}
+                            />
+                        </BarChart>
+                    </ResponsiveContainer>
+                </div>
+
+                    {/* PIE */}
+                    <div className="bg-white p-6 rounded-xl shadow">
+                    <h3 className="text-sm font-semibold text-gray-700 mb-4">
+                        Expenses by category
+                    </h3>
+
+                    <div className="flex flex-col md:flex-row items-center">
+                        <ResponsiveContainer width="50%" height={250}>
                             <PieChart>
                                 <Pie
                                     data={categoryData}
                                     dataKey="amount"
-                                    nameKey="category"
-                                    cx="50%"
-                                    cy="50%"
-                                    outerRadius={80}
-                                    label={({ payload, percent }) =>
-                                            `${payload.category} ${((percent ?? 0) * 100).toFixed(0)}%`
-                                    }
+                                    innerRadius={60}   // 👈 makes it a donut
+                                    outerRadius={90}
+                                    paddingAngle={4}
                                 >
-                                    {categoryData.map((_, index) => (
-                                        <Cell key={index} fill={COLORS[index % COLORS.length]} />
+                                    {categoryData.map((_, i) => (
+                                        <Cell key={i} fill={COLORS[i % COLORS.length]} />
                                     ))}
                                 </Pie>
-                                <Tooltip />
+                                <Tooltip formatter={(value) => value !== undefined && value !== null ? `KES ${value.toLocaleString()}` : ''} />
                             </PieChart>
                         </ResponsiveContainer>
+
+        {/* LEGEND (BETTER THAN LABELS) */}
+        <div className="mt-4 md:mt-0 md:ml-6 space-y-2">
+            {categoryData.map((item, i) => (
+                <div key={i} className="flex items-center justify-between text-sm w-48">
+                    <div className="flex items-center gap-2">
+                        <span
+                            className="w-3 h-3 rounded-full"
+                            style={{ backgroundColor: COLORS[i % COLORS.length] }}
+                        />
+                        <span>{item.category}</span>
                     </div>
+                    <span className="text-gray-600">
+                        KES {item.amount.toLocaleString()}
+                    </span>
                 </div>
+            ))}
+        </div>
+    </div>
+</div>
+
+                {/* TREND */}
+            
+            <div className="bg-white p-6 rounded-xl shadow mb-6">
+                <div className="mb-3">
+                    <h3 className="text-sm font-semibold text-gray-700">
+                        Spending Trend
+                    </h3>
+                    <p className="text-xs text-gray-400">
+                        Daily expenses over time
+                    </p>
+                </div>
+
+                <ResponsiveContainer width="100%" height={250}>
+                    <LineChart data={dailyData}>
+                        <XAxis dataKey="date" tick={{ fontSize: 10 }} />
+                        <YAxis />
+                        <Tooltip
+                            formatter={(value) =>
+                                value != null ? `KES ${value.toLocaleString()}` : ''
+                            }
+                            labelFormatter={(label) => `Date: ${label}`}
+                        />
+                        <Line
+                            type="monotone"
+                            dataKey="amount"
+                            stroke="#3b82f6"
+                            strokeWidth={2}
+                            dot={false}
+                        />
+                    </LineChart>
+                </ResponsiveContainer>
+            </div>
 
                 {/* Recent transactions */}
                 <div className="bg-white rounded-xl border border-gray-100 p-6">
@@ -228,8 +354,8 @@ export default function Dashboard() {
                         </div>
                     )}
                 </div>
-
             </div>
+        </div>
         </div>
     )
 }
