@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Navbar from '../components/Navbar'
+import posthog from '../lib/posthog' // ✅ ADDED
 
 export default function Reports() {
     const [startDate, setStartDate] = useState('')
@@ -7,6 +8,11 @@ export default function Reports() {
     const [loading, setLoading] = useState<'csv' | 'pdf' | null>(null)
 
     const token = localStorage.getItem('access_token')
+
+    // ✅ TRACK PAGE VIEW
+    useEffect(() => {
+        posthog.capture('reports_page_viewed')
+    }, [])
 
     const buildUrl = (type: 'csv' | 'pdf') => {
         let url = `${import.meta.env.VITE_API_URL}/reports/${type}`
@@ -19,10 +25,12 @@ export default function Reports() {
 
     const handleDownload = async (type: 'csv' | 'pdf') => {
         setLoading(type)
+
         try {
             const response = await fetch(buildUrl(type), {
                 headers: { Authorization: `Bearer ${token}` }
             })
+
             const blob = await response.blob()
             const url = URL.createObjectURL(blob)
             const link = document.createElement('a')
@@ -30,8 +38,21 @@ export default function Reports() {
             link.download = `flowwise_report_${new Date().toISOString().split('T')[0]}.${type}`
             link.click()
             URL.revokeObjectURL(url)
+
+            // ✅ TRACK DOWNLOAD SUCCESS
+            posthog.capture('report_downloaded', {
+                format: type, // csv or pdf
+                has_date_filter: !!(startDate || endDate)
+            })
+
         } catch (err) {
             console.error(err)
+
+            // ✅ TRACK FAILURE (optional but useful)
+            posthog.capture('report_download_failed', {
+                format: type
+            })
+
         } finally {
             setLoading(null)
         }
@@ -47,6 +68,7 @@ export default function Reports() {
                     <h3 className="text-sm font-semibold text-gray-700 mb-4">
                         Filter by date range (optional)
                     </h3>
+
                     <div className="grid grid-cols-2 gap-4 mb-6">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Start date</label>
@@ -57,6 +79,7 @@ export default function Reports() {
                                 className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
                         </div>
+
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">End date</label>
                             <input
@@ -69,6 +92,7 @@ export default function Reports() {
                     </div>
 
                     <div className="space-y-3">
+
                         {/* CSV */}
                         <div className="flex items-center justify-between p-4 border border-gray-100 rounded-lg">
                             <div>
@@ -98,6 +122,7 @@ export default function Reports() {
                                 {loading === 'pdf' ? 'Downloading...' : 'Download PDF'}
                             </button>
                         </div>
+
                     </div>
                 </div>
             </div>

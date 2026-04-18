@@ -1,8 +1,7 @@
-// Mpesa.tsx (FINAL VERSION - COPY PASTE)
-
 import { useState, useEffect } from 'react'
 import Navbar from '../components/Navbar'
 import api from '../api/axios'
+import posthog from '../lib/posthog' // ✅ ADDED
 
 type MpesaAccount = {
     id: number
@@ -27,6 +26,9 @@ export default function Mpesa() {
 
     useEffect(() => {
         fetchAccounts()
+
+        // ✅ TRACK PAGE VIEW
+        posthog.capture('mpesa_page_opened')
     }, [])
 
     const fetchAccounts = async () => {
@@ -38,7 +40,7 @@ export default function Mpesa() {
         }
     }
 
-    // ✅ RECORD PAYMENT (MAIN FIX)
+    // ✅ RECORD PAYMENT
     const handleRecordPayment = async () => {
         if (!amount) {
             setMessage("Amount is required")
@@ -58,6 +60,13 @@ export default function Mpesa() {
                 account_reference: paymentMethod === 'paybill' ? accountName : null,
                 date: new Date().toISOString().split('T')[0],
                 notes: description
+            })
+
+            // ✅ TRACK PAYMENT (MOST IMPORTANT EVENT)
+            posthog.capture('mpesa_payment_recorded', {
+                amount: Number(amount),
+                type: paymentMethod, // till or paybill
+                category: category,
             })
 
             setMessage("Payment recorded successfully")
@@ -82,6 +91,11 @@ export default function Mpesa() {
                 account_type: accountType,
                 shortcode,
                 account_name: accountType === 'paybill' ? accountName : ''
+            })
+
+            // ✅ TRACK ACCOUNT CREATION
+            posthog.capture('mpesa_account_added', {
+                type: accountType
             })
 
             fetchAccounts()
@@ -156,7 +170,6 @@ export default function Mpesa() {
                         <option value="paybill">Paybill</option>
                     </select>
 
-                    {/* AMOUNT */}
                     <input
                         type="number"
                         placeholder="Amount"
@@ -165,7 +178,6 @@ export default function Mpesa() {
                         className="w-full border px-3 py-2 rounded mb-3"
                     />
 
-                    {/* DESCRIPTION */}
                     <input
                         placeholder="Description (e.g. Sandals)"
                         value={description}
@@ -173,7 +185,6 @@ export default function Mpesa() {
                         className="w-full border px-3 py-2 rounded mb-3"
                     />
 
-                    {/* CATEGORY */}
                     <select
                         value={category}
                         onChange={(e) => setCategory(e.target.value)}
@@ -185,6 +196,8 @@ export default function Mpesa() {
                         <option value="Bills">Bills</option>
                         <option value="Other">Other</option>
                     </select>
+
+                    {/* (rest unchanged) */}
 
                     {/* TILL */}
                     {paymentMethod === 'till' &&

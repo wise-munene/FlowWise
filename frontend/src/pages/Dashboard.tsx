@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import Navbar from '../components/Navbar'
 import { useAuth } from '../context/AuthContext'
 import api from '../api/axios'
+import posthog from '../lib/posthog' // ✅ FIXED IMPORT
 import {
     BarChart, Bar, XAxis, YAxis, Tooltip, Legend,
     PieChart, Pie, Cell, ResponsiveContainer,
@@ -52,6 +53,12 @@ export default function Dashboard() {
         fetchData()
     }, [])
 
+    // ✅ TRACK DASHBOARD VIEW (FIXED TYPO)
+    useEffect(() => {
+        posthog.capture('dashboard_viewed')
+    }, [])
+
+    
     const totalIncome = transactions
         .filter(t => t.type === 'income')
         .reduce((sum, t) => sum + t.amount, 0)
@@ -62,7 +69,6 @@ export default function Dashboard() {
 
     const netBalance = totalIncome - totalExpense
 
-    // CATEGORY DATA
     const categoryData = transactions
         .filter(t => t.type === 'expense')
         .reduce((acc: any[], t) => {
@@ -75,7 +81,6 @@ export default function Dashboard() {
             return acc
         }, [])
 
-    // MONTHLY DATA
     const monthlyData = transactions.reduce((acc: any[], t) => {
         const month = t.date.substring(0, 7)
         const existing = acc.find(item => item.month === month)
@@ -92,7 +97,6 @@ export default function Dashboard() {
         return acc
     }, []).sort((a, b) => a.month.localeCompare(b.month))
 
-    // WEEKLY SUMMARY
     const today = new Date()
     const oneWeekAgo = new Date()
     oneWeekAgo.setDate(today.getDate() - 7)
@@ -117,7 +121,6 @@ export default function Dashboard() {
         ? ((weeklyTotal - lastWeekTotal) / lastWeekTotal) * 100
         : 0
 
-    // DAILY TREND
     const dailyData = transactions.reduce((acc: any[], t) => {
         if (t.type !== 'expense') return acc
 
@@ -132,12 +135,15 @@ export default function Dashboard() {
         return acc
     }, []).sort((a, b) => a.date.localeCompare(b.date))
 
-    // INSIGHT
     const topCategory = categoryData.sort((a, b) => b.amount - a.amount)[0]
 
     const insightMessage = topCategory
         ? `You spent the most on ${topCategory.category} this period.`
         : "No spending data yet."
+
+    // =========================
+    // UI
+    // =========================
 
     if (loading) {
         return (
@@ -159,6 +165,7 @@ export default function Dashboard() {
                     Welcome back, {user?.name}
                 </h2>
 
+                
                 {/* ALERTS */}
                 {alerts.length > 0 && (
                     <div className="mb-6 space-y-2">

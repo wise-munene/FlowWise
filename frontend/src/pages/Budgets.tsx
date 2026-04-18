@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import Navbar from '../components/Navbar'
 import api from '../api/axios'
+import posthog from '../lib/posthog' // ✅ ADDED
 
 interface Budget {
     id: number
@@ -13,6 +14,7 @@ interface Budget {
     is_exceeded: boolean
     is_near_limit: boolean
 }
+
 const CATEGORIES = [
     'Rent',
     'Utilities',
@@ -31,8 +33,6 @@ export default function Budgets() {
     const [error, setError] = useState('')
     const [customCategory, setCustomCategory] = useState('')
     const [editingId, setEditingId] = useState<number | null>(null)
-
-    
 
     const [form, setForm] = useState({
         category: 'Rent',
@@ -54,30 +54,53 @@ export default function Budgets() {
 
     useEffect(() => {
         fetchBudgets()
+
+        // ✅ TRACK PAGE VIEW
+        posthog.capture('budget_page_viewed')
     }, [])
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         setError('')
+
         try {
-          const finalCategory =
-            form.category === "Other" ? customCategory : form.category
+            const finalCategory =
+                form.category === "Other" ? customCategory : form.category
 
-        const payload = {
-        ...form,
-        category: finalCategory
-        }
+            const payload = {
+                ...form,
+                category: finalCategory
+            }
 
-        if (editingId) {
-        await api.put(`/budgets/${editingId}`, payload)
-        } else {
-        await api.post('/budgets/', payload)
-        }
+            if (editingId) {
+                await api.put(`/budgets/${editingId}`, payload)
+
+                // ✅ TRACK UPDATE
+                posthog.capture('budget_updated', {
+                    category: finalCategory,
+                    amount: Number(form.budget_amount)
+                })
+
+            } else {
+                await api.post('/budgets/', payload)
+
+                // ✅ TRACK CREATE
+                posthog.capture('budget_created', {
+                    category: finalCategory,
+                    amount: Number(form.budget_amount)
+                })
+            }
 
             setShowForm(false)
-            setForm({ category: 'Rent', budget_amount: '', period: 'monthly', alert_threshold: 0.80 })
+            setForm({
+                category: 'Rent',
+                budget_amount: '',
+                period: 'monthly',
+                alert_threshold: 0.80
+            })
             setCustomCategory('')
             fetchBudgets()
+
         } catch (err: any) {
             setError(err.response?.data?.error || 'Something went wrong')
         }
@@ -85,9 +108,14 @@ export default function Budgets() {
 
     const handleDelete = async (id: number) => {
         if (!confirm('Delete this budget?')) return
+
         try {
             await api.delete(`/budgets/${id}`)
             fetchBudgets()
+
+            // ✅ TRACK DELETE
+            posthog.capture('budget_deleted')
+
         } catch (err) {
             console.error(err)
         }
@@ -100,15 +128,18 @@ export default function Budgets() {
     }
 
     const handleEdit = (b: Budget) => {
-    setForm({
-        category: b.category,
-        budget_amount: String(b.budget_amount),
-        period: b.period,
-        alert_threshold: b.alert_threshold
-    })
-    setEditingId(b.id)
-    setShowForm(true)
-}
+        setForm({
+            category: b.category,
+            budget_amount: String(b.budget_amount),
+            period: b.period,
+            alert_threshold: b.alert_threshold
+        })
+        setEditingId(b.id)
+        setShowForm(true)
+
+        // ✅ TRACK EDIT INTENT
+        posthog.capture('budget_edit_started')
+    }
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -118,13 +149,19 @@ export default function Budgets() {
                 <div className="flex items-center justify-between mb-6">
                     <h2 className="text-2xl font-bold text-gray-900">Budgets</h2>
                     <button
-                        onClick={() => setShowForm(true)}
+                        onClick={() => {
+                            setShowForm(true)
+
+                            // ✅ TRACK FORM OPEN
+                            posthog.capture('budget_form_opened')
+                        }}
                         className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
                     >
                         + Add budget
                     </button>
                 </div>
 
+                
                 {/* Form */}
                 {showForm && (
                     <div className="bg-white rounded-xl border border-gray-100 p-6 mb-6">

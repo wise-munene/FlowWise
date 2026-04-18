@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import Navbar from '../components/Navbar'
 import api from '../api/axios'
+import posthog from '../lib/posthog' // ✅ ADDED
 
 interface Transaction {
     id: number
@@ -54,28 +55,38 @@ export default function Transactions() {
 
     useEffect(() => {
         fetchTransactions()
+
+        // ✅ TRACK PAGE VIEW
+        posthog.capture('transactions_page_viewed')
     }, [])
 
     const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault()
+        e.preventDefault()
 
-  // Reset error state
-    setError('')
-  const finalCategory =
-    form.category === "Other" ? customCategory : form.category
+        setError('')
 
-  // OPTIONAL SAFETY
-  if (form.category === "Other" && !customCategory.trim()) {
-    alert("Please enter a category")
-    return
-  }
+        const finalCategory =
+            form.category === "Other" ? customCategory : form.category
 
-  try {
-    await api.post('/transactions/', {
-      ...form,
-      category: finalCategory // THIS IS THE FIX
-    })
-            
+        if (form.category === "Other" && !customCategory.trim()) {
+            alert("Please enter a category")
+            return
+        }
+
+        try {
+            await api.post('/transactions/', {
+                ...form,
+                category: finalCategory
+            })
+
+            // ✅ TRACK SUCCESSFUL TRANSACTION
+            posthog.capture('transaction_created', {
+                category: finalCategory,
+                amount: Number(form.amount),
+                payment_method: form.payment_method,
+                type: form.type
+            })
+
             setEditingId(null)
             setForm({
                 type: 'expense',
@@ -90,6 +101,7 @@ export default function Transactions() {
             setCustomCategory('')
             setShowForm(false)
             fetchTransactions()
+
         } catch (err: any) {
             setError(err.response?.data?.error || 'Something went wrong')
         }
@@ -105,15 +117,23 @@ export default function Transactions() {
             notes: t.notes || '',
             is_recurring: t.is_recurring
         })
+
         setEditingId(t.id)
         setShowForm(true)
+
+        // ✅ TRACK EDIT INTENT
+        posthog.capture('transaction_edit_started')
     }
 
     const handleDelete = async (id: number) => {
         if (!confirm('Delete this transaction?')) return
+
         try {
             await api.delete(`/transactions/${id}`)
             fetchTransactions()
+
+            // ✅ TRACK DELETE
+            posthog.capture('transaction_deleted')
         } catch (err) {
             console.error(err)
         }
@@ -128,12 +148,19 @@ export default function Transactions() {
                 <div className="flex items-center justify-between mb-6">
                     <h2 className="text-2xl font-bold text-gray-900">Transactions</h2>
                     <button
-                        onClick={() => { setShowForm(true); setEditingId(null) }}
+                        onClick={() => {
+                            setShowForm(true)
+                            setEditingId(null)
+
+                            // ✅ TRACK FORM OPEN
+                            posthog.capture('transaction_form_opened')
+                        }}
                         className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
                     >
                         + Add transaction
                     </button>
                 </div>
+
 
                 {/* Form */}
                 {showForm && (
