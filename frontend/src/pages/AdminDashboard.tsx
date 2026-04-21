@@ -139,6 +139,23 @@ export default function AdminDashboard() {
       this_month: stats?.transactions?.this_month || 0,
     }
   }
+  
+  {toast && (
+  <div style={{
+    position: 'fixed',
+    bottom: 20,
+    right: 20,
+    background: toast.type === 'success' ? '#1a1a1a' : '#dc2626',
+    color: '#fff',
+    padding: '10px 14px',
+    borderRadius: 8,
+    fontSize: 12,
+    fontWeight: 500,
+    boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+  }}>
+    {toast.msg}
+  </div>
+)}
 
 
   return (
