@@ -11,6 +11,8 @@ class User(db.Model):
     password_hash= db.Column(db.String(128), nullable=False)
     account_type= db.Column(db.String(20), nullable=False, default='personal')  #whether it is a personal or business account
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    is_admin = db.Column(db.Boolean, default=False)
+    is_premium = db.Column(db.Boolean, default=False)
 
     transactions = db.relationship('Transaction', backref='user', lazy=True)
     budgets = db.relationship('Budget', backref='user', lazy=True)

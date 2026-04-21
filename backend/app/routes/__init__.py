@@ -3,3 +3,12 @@ from .transactions import transactions_bp
 from .budgets import budgets_bp
 from .reports import reports_bp
 from .mpesa import mpesa_bp
+from .admin import admin_bp
+
+
+
+
+
+
+def register_routes(app):
+    app.register_blueprint(admin_bp)

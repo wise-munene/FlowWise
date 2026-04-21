@@ -6,6 +6,8 @@ interface User {
     name: string
     email: string
     account_type: string
+    is_admin: boolean
+    is_premium: boolean
 }
 
 interface AuthContextType {
@@ -54,7 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             token,
             login,
             logout,
-            isAuthenticated: !!token,
+            isAuthenticated: !!user,
             loading
         }}>
             {children}
