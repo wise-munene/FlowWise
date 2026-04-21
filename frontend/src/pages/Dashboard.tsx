@@ -49,6 +49,7 @@ export default function Dashboard() {
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [alerts, setAlerts] = useState<Alert[]>([])
   const [loading, setLoading] = useState(true)
+  const [showAllCategories, setShowAllCategories] = useState(false)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -254,7 +255,7 @@ export default function Dashboard() {
                                         </PieChart>
                 </ResponsiveContainer>
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 5 }}>
-                  {categoryData.slice(0, 5).map((item, i) => (
+                    {(showAllCategories ? categoryData : categoryData.slice(0, 5)).map((item, i) => (
                     <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       <div style={{ width: 8, height: 8, borderRadius: 2, background: COLORS[i % COLORS.length], flexShrink: 0 }} />
                       <span style={{ fontSize: 11, color: '#666', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -265,7 +266,22 @@ export default function Dashboard() {
                       </span>
                     </div>
                   ))}
-                  {categoryData.length > 5 && <p style={{ fontSize: 10, color: '#ccc', margin: 0 }}>+{categoryData.length - 5} more</p>}
+                  {categoryData.length > 5 && (
+                    <p
+                        onClick={() => setShowAllCategories(!showAllCategories)}
+                        style={{
+                        fontSize: 11,
+                        color: '#666',
+                        margin: 0,
+                        cursor: 'pointer',
+                        fontWeight: 500
+                        }}
+                    >
+                        {showAllCategories
+                        ? 'Show less'
+                        : `+${categoryData.length - 5} more`}
+                    </p>
+                    )}
                 </div>
               </div>
             )}
