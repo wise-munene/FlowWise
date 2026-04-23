@@ -39,4 +39,4 @@ frontend/dist/
 # IDE / OS
 # =========================
 .vscode/
-.DS_Store
+.DS_Storebackend/.flaskenv

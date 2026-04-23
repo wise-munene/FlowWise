@@ -50,7 +50,7 @@ export default function Transactions() {
   const inputStyle = { width: '100%', padding: '9px 12px', border: `2px solid ${C.inputBorder}`, borderRadius: 10, fontSize: 13, fontFamily: C.font, outline: 'none', boxSizing: 'border-box' as const, color: C.text, background: C.inputBg }
 
   const fetchTransactions = async () => {
-    try { const res = await api.get('/transactions/'); setTransactions(res.data) }
+    try { const res = await api.get('/transactions/'); setTransactions(res.data.transactions?? res.data) }
     catch (err) { console.error(err) } finally { setLoading(false) }
   }
   useEffect(() => { fetchTransactions() }, [])

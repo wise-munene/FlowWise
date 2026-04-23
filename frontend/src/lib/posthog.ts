@@ -1,8 +1,14 @@
 import posthog from 'posthog-js'
 
-posthog.init('phc_CYpECQgYUmmyreiDnBRH9q8XQNpmR5Pg43jg3wjuw4i2', {
-    api_host: 'https://us.i.posthog.com',
+const key = import.meta.env.VITE_POSTHOG_KEY
+
+if (!key) {
+  console.warn('PostHog key missing')
+} else {
+  posthog.init(key, {
+    api_host: import.meta.env.VITE_POSTHOG_HOST || 'https://us.i.posthog.com',
     capture_pageview: true,
-})
+  })
+}
 
 export default posthog

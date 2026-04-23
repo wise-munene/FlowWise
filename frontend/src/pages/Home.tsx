@@ -5,301 +5,387 @@ import { useEffect, useRef, useState } from 'react'
 export default function Home() {
     const formRef = useRef<HTMLFormElement>(null)
     const [contactStatus, setContactStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
+    const [menuOpen, setMenuOpen] = useState(false)
 
     useEffect(() => {
-    emailjs.init('7nJJoOeCr9Jxb5wnx')
+        const key = import.meta.env.VITE_EMAILJS_PUBLIC_KEY
+        if (key) emailjs.init(key)
     }, [])
-    
+
     const handleContact = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setContactStatus('sending')
+        e.preventDefault()
+        setContactStatus('sending')
+        const form = formRef.current
+        if (!form) return
 
-    const form = formRef.current
-    if (!form) return
+        const templateParams = {
+            from_name:  (form.elements.namedItem('from_name')  as HTMLInputElement).value,
+            from_email: (form.elements.namedItem('from_email') as HTMLInputElement).value,
+            subject:    (form.elements.namedItem('subject')    as HTMLInputElement).value,
+            message:    (form.elements.namedItem('message')    as HTMLTextAreaElement).value,
+        }
 
-    const templateParams = {
-        from_name: (form.elements.namedItem('from_name') as HTMLInputElement).value,
-        from_email: (form.elements.namedItem('from_email') as HTMLInputElement).value,
-        subject: (form.elements.namedItem('subject') as HTMLInputElement).value,
-        message: (form.elements.namedItem('message') as HTMLTextAreaElement).value,
+        try {
+            await emailjs.send(
+                import.meta.env.VITE_EMAILJS_SERVICE_ID  || '',
+                import.meta.env.VITE_EMAILJS_TEMPLATE_ID || '',
+                templateParams,
+                import.meta.env.VITE_EMAILJS_PUBLIC_KEY  || ''
+            )
+            setContactStatus('sent')
+            formRef.current?.reset()
+        } catch (err) {
+            console.error('EmailJS error:', err)
+            setContactStatus('error')
+        }
     }
-
-    try {
-        await emailjs.send(
-            'service_9pj6uei',
-            'template_6t3ool3',
-            templateParams,
-            '7nJJoOeCr9Jxb5wnx'
-        )
-        setContactStatus('sent')
-        formRef.current?.reset()
-    } catch (err) {
-        console.error('EmailJS error:', err)
-        setContactStatus('error')
-    }
-}
 
     const features = [
-        {
-            icon: '📊',
-            title: 'Track every shilling',
-            desc: 'Log income and expenses in seconds — whether it\'s a salary, a sale, or a weekly shopping trip.'
-        },
-        {
-            icon: '🎯',
-            title: 'Budgets that work',
-            desc: 'Set monthly limits for rent, groceries, transport or any category. Get alerted before you overspend.'
-        },
-        {
-            icon: '📈',
-            title: 'See the full picture',
-            desc: 'Charts and summaries show where your money comes from and where it goes — at a glance.'
-        },
-        {
-            icon: '📄',
-            title: 'Reports on demand',
-            desc: 'Download PDF reports for your accountant or CSV files for your own records. Anytime.'
-        },
-        {
-            icon: '🔔',
-            title: 'Spending alerts',
-            desc: 'Real-time warnings when you\'re approaching your limits so you can adjust before it\'s too late.'
-        },
-        {
-            icon: '👤',
-            title: 'Personal & business',
-            desc: 'Works for your household budget and your business finances. One tool, two use cases.'
-        },
+        { icon: '📊', title: 'Track every shilling',   desc: "Log income and expenses in seconds — salary, a sale, or a weekly shopping trip." },
+        { icon: '🎯', title: 'Budgets that work',      desc: 'Set monthly limits per category. Get alerted before you overspend.' },
+        { icon: '📈', title: 'See the full picture',   desc: 'Charts and summaries show where your money comes from and where it goes.' },
+        { icon: '📄', title: 'Reports on demand',      desc: 'Download PDF reports for your accountant or CSV files for your own records.' },
+        { icon: '📱', title: 'M-Pesa integrated',      desc: 'Record Till and Paybill payments directly. Your M-Pesa life, tracked automatically.' },
+        { icon: '👤', title: 'Personal & business',    desc: 'Works for your household budget and your business finances. One tool, two use cases.' },
     ]
 
-    const useCases = [
-        {
-            type: 'For individuals',
-            title: 'Know where your salary goes',
-            desc: 'You earn every month but somehow it runs out before the next paycheck. FlowWise shows you exactly where it went — groceries, transport, entertainment — so you can budget smarter next time.',
-            color: 'bg-blue-50 border-blue-100',
-            tag: 'bg-blue-100 text-blue-700'
-        },
-        {
-            type: 'For small businesses',
-            title: 'Run your business with clarity',
-            desc: 'Track sales, manage expenses, monitor cash flow and generate reports for your accountant — without hiring a full-time bookkeeper.',
-            color: 'bg-gray-50 border-gray-100',
-            tag: 'bg-gray-200 text-gray-700'
-        },
+    const steps = [
+        { step: '01', title: 'Create your account', desc: 'Sign up free. Choose personal or business mode.' },
+        { step: '02', title: 'Log your transactions', desc: 'Add income and expenses as they happen. Takes under 10 seconds.' },
+        { step: '03', title: 'Understand your money', desc: 'Your dashboard updates instantly. Download reports anytime.' },
+    ]
+
+    const navLinks = [
+        { href: '#features',    label: 'Features' },
+        { href: '#how-it-works',label: 'How it works' },
+        { href: '#about',       label: 'About' },
+        { href: '#contact',     label: 'Contact' },
     ]
 
     return (
-        <div className="min-h-screen bg-white font-sans">
+        <div className="min-h-screen bg-white" style={{ fontFamily: "'DM Sans', sans-serif" }}>
 
-            {/* Navbar */}
-            <nav className="sticky top-0 z-50 bg-white border-b border-gray-100">
-                <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                            <span className="text-white text-sm font-bold">F</span>
+            {/* Google Font */}
+            <link
+                href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,400&family=DM+Mono:wght@400;500&display=swap"
+                rel="stylesheet"
+            />
+
+            {/* ── NAVBAR ─────────────────────────────────────────────── */}
+            <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-100">
+                <div className="max-w-6xl mx-auto px-5 py-3.5 flex items-center justify-between">
+
+                    {/* Logo */}
+                    <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-sm shadow-blue-200">
+                            <span className="text-white text-sm font-bold" style={{ fontFamily: "'DM Mono', monospace" }}>F</span>
                         </div>
-                        <span className="text-xl font-bold text-gray-900">FlowWise</span>
+                        <span className="text-lg font-bold text-gray-900 tracking-tight">FlowWise</span>
                     </div>
-                    <div className="hidden md:flex items-center gap-8">
-                        <a href="#features" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">Features</a>
-                        <a href="#who-its-for" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">Who it's for</a>
-                        <a href="#about" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">About</a>
-                        <a href="#contact" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">Contact</a>
+
+                    {/* Desktop links */}
+                    <div className="hidden md:flex items-center gap-7">
+                        {navLinks.map(l => (
+                            <a key={l.href} href={l.href}
+                                className="text-sm text-gray-500 hover:text-gray-900 transition-colors font-medium">
+                                {l.label}
+                            </a>
+                        ))}
                     </div>
-                    <div className="flex items-center gap-3">
-                        <Link to="/login" className="text-sm text-gray-700 font-medium hover:text-blue-600 transition-colors px-4 py-2">
+
+                    {/* CTAs */}
+                    <div className="hidden md:flex items-center gap-2">
+                        <Link to="/login"
+                            className="text-sm text-gray-600 font-medium hover:text-blue-600 transition-colors px-4 py-2">
                             Log in
                         </Link>
-                        <Link to="/signup" className="text-sm bg-blue-600 hover:bg-blue-700 text-white font-medium px-5 py-2.5 rounded-lg transition-colors">
-                            Get started
-                        </Link>
-                    </div>
-                </div>
-            </nav>
-
-            {/* Hero */}
-            <section className="bg-gradient-to-b from-blue-50 to-white pt-20 pb-24 px-6">
-                <div className="max-w-4xl mx-auto text-center">
-                    <div className="inline-flex items-center gap-2 bg-blue-100 text-blue-700 text-xs font-medium px-3 py-1.5 rounded-full mb-6">
-                        <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
-                        For individuals and businesses in Kenya
-                    </div>
-                    <h1 className="text-5xl md:text-6xl font-bold text-gray-900 leading-tight mb-6">
-                        Your money,
-                        <br />
-                        <span className="text-blue-600">finally under control</span>
-                    </h1>
-                    <p className="text-lg text-gray-500 max-w-2xl mx-auto mb-10 leading-relaxed">
-                        Whether you're managing your household budget or running a small business —
-                        FlowWise gives you the tools to track, budget, and understand your finances.
-                    </p>
-                    <div className="flex items-center justify-center gap-4">
-                        <Link to="/signup" className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-3.5 rounded-lg transition-colors text-sm shadow-lg shadow-blue-200">
+                        <Link to="/signup"
+                            className="text-sm bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2.5 rounded-xl transition-colors shadow-sm shadow-blue-200">
                             Get started free
                         </Link>
-                        <Link to="/login" className="border border-gray-200 hover:border-gray-300 bg-white text-gray-700 font-medium px-8 py-3.5 rounded-lg transition-colors text-sm">
-                            Sign in
+                    </div>
+
+                    {/* Mobile hamburger */}
+                    <button
+                        onClick={() => setMenuOpen(o => !o)}
+                        className="md:hidden flex flex-col gap-1.5 p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                        aria-label="Toggle menu"
+                    >
+                        <span className={`block w-5 h-0.5 bg-gray-700 transition-transform duration-200 ${menuOpen ? 'rotate-45 translate-y-2' : ''}`} />
+                        <span className={`block w-5 h-0.5 bg-gray-700 transition-opacity duration-200 ${menuOpen ? 'opacity-0' : ''}`} />
+                        <span className={`block w-5 h-0.5 bg-gray-700 transition-transform duration-200 ${menuOpen ? '-rotate-45 -translate-y-2' : ''}`} />
+                    </button>
+                </div>
+
+                {/* Mobile drawer */}
+                {menuOpen && (
+                    <div className="md:hidden border-t border-gray-100 bg-white px-5 py-4 flex flex-col gap-1">
+                        {navLinks.map(l => (
+                            <a key={l.href} href={l.href} onClick={() => setMenuOpen(false)}
+                                className="text-sm font-medium text-gray-700 px-3 py-2.5 rounded-lg hover:bg-gray-50 transition-colors">
+                                {l.label}
+                            </a>
+                        ))}
+                        <div className="flex gap-2 mt-3 pt-3 border-t border-gray-100">
+                            <Link to="/login" onClick={() => setMenuOpen(false)}
+                                className="flex-1 text-center text-sm font-medium text-gray-700 border border-gray-200 py-2.5 rounded-xl hover:bg-gray-50 transition-colors">
+                                Log in
+                            </Link>
+                            <Link to="/signup" onClick={() => setMenuOpen(false)}
+                                className="flex-1 text-center text-sm font-semibold text-white bg-blue-600 py-2.5 rounded-xl hover:bg-blue-700 transition-colors">
+                                Get started
+                            </Link>
+                        </div>
+                    </div>
+                )}
+            </nav>
+
+            {/* ── HERO ───────────────────────────────────────────────── */}
+            <section className="relative overflow-hidden bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900 pt-24 pb-32 px-5">
+
+                {/* Background grid */}
+                <div className="absolute inset-0 opacity-10"
+                    style={{
+                        backgroundImage: 'linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)',
+                        backgroundSize: '40px 40px'
+                    }} />
+
+                {/* Glow */}
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] rounded-full opacity-20"
+                    style={{ background: 'radial-gradient(ellipse, #3b82f6, transparent 70%)' }} />
+
+                <div className="relative max-w-4xl mx-auto text-center">
+                    <div className="inline-flex items-center gap-2 bg-blue-500/15 border border-blue-400/20 text-blue-300 text-xs font-semibold px-4 py-2 rounded-full mb-8 backdrop-blur-sm">
+                        <span className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse" />
+                        Built for Kenya — M-Pesa native
+                    </div>
+
+                    <h1 className="text-5xl md:text-7xl font-bold text-white leading-[1.08] tracking-tight mb-7"
+                        style={{ letterSpacing: '-0.03em' }}>
+                        Your money,
+                        <br />
+                        <span className="text-transparent bg-clip-text"
+                            style={{ backgroundImage: 'linear-gradient(135deg, #60a5fa, #34d399)' }}>
+                            finally clear.
+                        </span>
+                    </h1>
+
+                    <p className="text-lg text-slate-300 max-w-2xl mx-auto mb-10 leading-relaxed font-light">
+                        Track income and expenses, set budgets, record M-Pesa payments, and download
+                        reports — all in one place built for how Kenyans actually handle money.
+                    </p>
+
+                    <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                        <Link to="/signup"
+                            className="w-full sm:w-auto text-center bg-blue-500 hover:bg-blue-400 text-white font-semibold px-8 py-4 rounded-xl transition-all text-sm shadow-lg shadow-blue-900/50 hover:shadow-blue-900/70 hover:-translate-y-0.5">
+                            Start for free — no card needed
                         </Link>
+                        <a href="#how-it-works"
+                            className="w-full sm:w-auto text-center border border-white/15 hover:border-white/30 text-slate-300 hover:text-white font-medium px-8 py-4 rounded-xl transition-all text-sm backdrop-blur-sm">
+                            See how it works →
+                        </a>
+                    </div>
+
+                    {/* Social proof strip */}
+                    <div className="flex flex-wrap items-center justify-center gap-6 mt-14 text-slate-400 text-xs font-medium">
+                        {['Free to start', 'KES native', 'M-Pesa integrated', 'PDF & CSV reports'].map((t, i) => (
+                            <div key={i} className="flex items-center gap-1.5">
+                                <svg className="w-3.5 h-3.5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                </svg>
+                                {t}
+                            </div>
+                        ))}
                     </div>
                 </div>
             </section>
 
-
-            {/* Demo Video */}
-            {/* <section className="py-16 px-6 bg-white">
-                <div className="max-w-5xl mx-auto text-center">
-
-                    <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">
-                        See FlowWise in action
-                    </h2>
-
-                    <p className="text-sm text-gray-500 mb-10 max-w-xl mx-auto">
-                        Watch how you can track your spending, categorize transactions, and understand your money in seconds.
-                    </p>
-
-                    <div className="relative w-full aspect-video rounded-2xl overflow-hidden shadow-lg border border-gray-100">
-                        <video
-                            controls
-                            className="w-full h-full object-cover"
-                        >
+            {/* ── DEMO VIDEO ──────────────────────────────────────────── */}
+            <section className="bg-slate-950 pb-20 px-5">
+                <div className="max-w-4xl mx-auto">
+                    <div className="relative rounded-2xl overflow-hidden border border-white/10 shadow-2xl shadow-black/50 -mt-6">
+                        <video controls className="w-full aspect-video object-cover bg-slate-900">
                             <source src="/demo.mp4" type="video/mp4" />
                             Your browser does not support the video tag.
                         </video>
                     </div>
-
                 </div>
-            </section> */}
+            </section>
 
-            {/* Stats bar */}
-            <section className="border-y border-gray-100 bg-white py-8">
-                <div className="max-w-4xl mx-auto px-6">
-                    <div className="grid grid-cols-3 gap-8 text-center">
+            {/* ── STATS BAR ───────────────────────────────────────────── */}
+            <section className="bg-slate-950 border-t border-white/5 pb-16 px-5">
+                <div className="max-w-3xl mx-auto">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-white/5 rounded-2xl overflow-hidden border border-white/5">
                         {[
-                            { value: 'Free', label: 'Free to get started' },
-                            { value: 'KES', label: 'Native currency support' },
-                            { value: '2-in-1', label: 'Personal & business' },
+                            { value: 'Free',  label: 'Forever free tier' },
+                            { value: 'KES',   label: 'Native currency' },
+                            { value: '2-in-1',label: 'Personal & business' },
+                            { value: 'M-Pesa',label: 'Payment integration' },
                         ].map((s, i) => (
-                            <div key={i}>
-                                <div className="text-2xl font-bold text-blue-600 mb-1">{s.value}</div>
-                                <div className="text-xs text-gray-500">{s.label}</div>
+                            <div key={i} className="bg-slate-900 px-6 py-6 text-center">
+                                <div className="text-xl font-bold text-blue-400 mb-1"
+                                    style={{ fontFamily: "'DM Mono', monospace" }}>{s.value}</div>
+                                <div className="text-xs text-slate-500 font-medium">{s.label}</div>
                             </div>
                         ))}
                     </div>
                 </div>
             </section>
 
-            {/* Who it's for */}
-            <section id="who-its-for" className="py-20 px-6">
+            {/* ── WHO IT'S FOR ────────────────────────────────────────── */}
+            <section id="who-its-for" className="bg-white py-24 px-5">
                 <div className="max-w-5xl mx-auto">
                     <div className="text-center mb-14">
-                        <h2 className="text-3xl font-bold text-gray-900 mb-3">Who is FlowWise for?</h2>
-                        <p className="text-gray-500 text-sm max-w-xl mx-auto">
-                            Built for two types of people — both equally important.
-                        </p>
+                        <p className="text-blue-600 text-xs font-bold uppercase tracking-widest mb-3">Who it's for</p>
+                        <h2 className="text-4xl font-bold text-gray-900 tracking-tight" style={{ letterSpacing: '-0.02em' }}>
+                            Built for two types of people
+                        </h2>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {useCases.map((u, i) => (
-                            <div key={i} className={`rounded-2xl border p-8 ${u.color}`}>
-                                <span className={`text-xs font-semibold px-3 py-1 rounded-full ${u.tag}`}>
-                                    {u.type}
-                                </span>
-                                <h3 className="text-lg font-bold text-gray-900 mt-4 mb-3">{u.title}</h3>
-                                <p className="text-sm text-gray-600 leading-relaxed">{u.desc}</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <div className="rounded-2xl bg-blue-600 p-8 text-white relative overflow-hidden">
+                            <div className="absolute -right-8 -top-8 w-40 h-40 rounded-full bg-blue-500/40" />
+                            <div className="relative">
+                                <span className="text-xs font-bold uppercase tracking-widest text-blue-200">For individuals</span>
+                                <h3 className="text-2xl font-bold mt-3 mb-3 leading-snug">Know where your salary goes</h3>
+                                <p className="text-blue-100 text-sm leading-relaxed">
+                                    You earn every month but somehow it's gone before the next paycheck.
+                                    FlowWise shows you exactly where — groceries, transport, entertainment —
+                                    so you can budget smarter next time.
+                                </p>
+                                <Link to="/signup"
+                                    className="inline-flex items-center gap-1 mt-6 text-sm font-semibold text-white border border-white/30 px-4 py-2 rounded-lg hover:bg-white/10 transition-colors">
+                                    Get started free →
+                                </Link>
                             </div>
-                        ))}
+                        </div>
+                        <div className="rounded-2xl border-2 border-gray-100 bg-gray-50 p-8 relative overflow-hidden">
+                            <div className="absolute -right-8 -top-8 w-40 h-40 rounded-full bg-gray-200/60" />
+                            <div className="relative">
+                                <span className="text-xs font-bold uppercase tracking-widest text-gray-400">For small businesses</span>
+                                <h3 className="text-2xl font-bold mt-3 mb-3 text-gray-900 leading-snug">Run your business with clarity</h3>
+                                <p className="text-gray-500 text-sm leading-relaxed">
+                                    Track sales, manage expenses, monitor cash flow and generate reports
+                                    for your accountant — without hiring a full-time bookkeeper.
+                                </p>
+                                <Link to="/signup"
+                                    className="inline-flex items-center gap-1 mt-6 text-sm font-semibold text-gray-700 border border-gray-200 bg-white px-4 py-2 rounded-lg hover:border-gray-300 transition-colors">
+                                    Get started free →
+                                </Link>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </section>
 
-            {/* Features */}
-            <section id="features" className="bg-gray-50 py-20 px-6">
+            {/* ── FEATURES ────────────────────────────────────────────── */}
+            <section id="features" className="bg-gray-50 py-24 px-5">
                 <div className="max-w-6xl mx-auto">
                     <div className="text-center mb-14">
-                        <h2 className="text-3xl font-bold text-gray-900 mb-3">
+                        <p className="text-blue-600 text-xs font-bold uppercase tracking-widest mb-3">Features</p>
+                        <h2 className="text-4xl font-bold text-gray-900 tracking-tight" style={{ letterSpacing: '-0.02em' }}>
                             Everything you need
                         </h2>
-                        <p className="text-gray-500 text-sm max-w-xl mx-auto">
-                            Simple enough for anyone to use. Powerful enough for real financial management.
+                        <p className="text-gray-400 mt-3 text-sm max-w-md mx-auto">
+                            Simple enough for anyone. Powerful enough for real financial management.
                         </p>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         {features.map((f, i) => (
-                            <div key={i} className="bg-white p-6 rounded-2xl border border-gray-100 hover:border-blue-200 hover:shadow-lg hover:shadow-blue-50 transition-all duration-200">
-                                <div className="text-2xl mb-4">{f.icon}</div>
-                                <h3 className="text-sm font-semibold text-gray-900 mb-2">{f.title}</h3>
-                                <p className="text-sm text-gray-500 leading-relaxed">{f.desc}</p>
+                            <div key={i}
+                                className="bg-white rounded-2xl border border-gray-100 p-6 hover:border-blue-200 hover:shadow-lg hover:shadow-blue-50 hover:-translate-y-0.5 transition-all duration-200 group">
+                                <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-xl mb-4 group-hover:bg-blue-100 transition-colors">
+                                    {f.icon}
+                                </div>
+                                <h3 className="text-sm font-bold text-gray-900 mb-2">{f.title}</h3>
+                                <p className="text-sm text-gray-400 leading-relaxed">{f.desc}</p>
                             </div>
                         ))}
                     </div>
                 </div>
             </section>
 
-            {/* How it works */}
-            <section className="bg-blue-600 py-20 px-6">
-                <div className="max-w-4xl mx-auto text-center">
-                    <h2 className="text-3xl font-bold text-white mb-4">Up and running in minutes</h2>
-                    <p className="text-blue-200 text-sm mb-12 max-w-xl mx-auto">
-                        No complicated setup. No accountant required. Just sign up and start.
-                    </p>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                        {[
-                            { step: '01', title: 'Create your account', desc: 'Sign up free. Choose personal or business mode depending on your needs.' },
-                            { step: '02', title: 'Log your transactions', desc: 'Add income and expenses as they happen. Takes less than 10 seconds each.' },
-                            { step: '03', title: 'Understand your money', desc: 'Your dashboard updates instantly. Download reports whenever you need them.' },
-                        ].map((s, i) => (
-                            <div key={i} className="text-left">
-                                <div className="text-5xl font-bold text-blue-400 mb-3">{s.step}</div>
-                                <h3 className="text-sm font-semibold text-white mb-2">{s.title}</h3>
-                                <p className="text-sm text-blue-200 leading-relaxed">{s.desc}</p>
+            {/* ── HOW IT WORKS ────────────────────────────────────────── */}
+            <section id="how-it-works" className="bg-slate-950 py-24 px-5">
+                <div className="max-w-4xl mx-auto">
+                    <div className="text-center mb-16">
+                        <p className="text-blue-400 text-xs font-bold uppercase tracking-widest mb-3">How it works</p>
+                        <h2 className="text-4xl font-bold text-white tracking-tight" style={{ letterSpacing: '-0.02em' }}>
+                            Up and running in minutes
+                        </h2>
+                        <p className="text-slate-400 mt-3 text-sm">No complicated setup. No accountant required.</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {steps.map((s, i) => (
+                            <div key={i} className="relative">
+                                {/* Connector line */}
+                                {i < steps.length - 1 && (
+                                    <div className="hidden md:block absolute top-7 left-full w-full h-px bg-gradient-to-r from-blue-500/40 to-transparent -translate-x-1/2 z-0" />
+                                )}
+                                <div className="relative bg-slate-900 border border-white/8 rounded-2xl p-6 hover:border-blue-500/30 transition-colors">
+                                    <div className="text-4xl font-bold mb-4"
+                                        style={{ fontFamily: "'DM Mono', monospace", color: 'rgba(96, 165, 250, 0.35)' }}>
+                                        {s.step}
+                                    </div>
+                                    <h3 className="text-sm font-bold text-white mb-2">{s.title}</h3>
+                                    <p className="text-sm text-slate-400 leading-relaxed">{s.desc}</p>
+                                </div>
                             </div>
                         ))}
                     </div>
-                    <div className="mt-12">
-                        <Link to="/signup" className="inline-block bg-white hover:bg-gray-50 text-blue-600 font-semibold px-8 py-3.5 rounded-lg transition-colors text-sm">
-                            Get started free
+
+                    <div className="text-center mt-12">
+                        <Link to="/signup"
+                            className="inline-block bg-blue-500 hover:bg-blue-400 text-white font-semibold px-8 py-3.5 rounded-xl transition-all text-sm shadow-lg shadow-blue-900/50 hover:-translate-y-0.5">
+                            Create your free account →
                         </Link>
                     </div>
                 </div>
             </section>
 
-            {/* About */}
-            <section id="about" className="py-20 px-6">
-                <div className="max-w-4xl mx-auto">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+            {/* ── ABOUT ───────────────────────────────────────────────── */}
+            <section id="about" className="bg-white py-24 px-5">
+                <div className="max-w-5xl mx-auto">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
                         <div>
-                            <h2 className="text-3xl font-bold text-gray-900 mb-4">Built for Kenya</h2>
-                            <p className="text-gray-500 text-sm leading-relaxed mb-4">
+                            <p className="text-blue-600 text-xs font-bold uppercase tracking-widest mb-4">Our story</p>
+                            <h2 className="text-4xl font-bold text-gray-900 mb-6 leading-tight tracking-tight"
+                                style={{ letterSpacing: '-0.02em' }}>
+                                Built for Kenya,<br />by people who get it
+                            </h2>
+                            <p className="text-gray-400 text-sm leading-relaxed mb-4">
                                 Most financial tools were built for Western markets. They're too complex,
-                                too expensive, or simply don't understand how money moves in Kenya.
+                                too expensive, and simply don't understand how money moves in Kenya —
+                                M-Pesa, chamas, daily cash businesses.
                             </p>
-                            <p className="text-gray-500 text-sm leading-relaxed mb-4">
+                            <p className="text-gray-400 text-sm leading-relaxed mb-4">
                                 FlowWise was designed here, for here. Whether you're a salaried employee
-                                trying to save more each month, or a shop owner tracking daily sales and
-                                expenses — FlowWise works for you.
+                                trying to save more each month, or a shop owner tracking daily sales —
+                                FlowWise works the way you do.
                             </p>
-                            <p className="text-gray-500 text-sm leading-relaxed">
-                                Our goal is simple — give every Kenyan the financial clarity they
-                                deserve, regardless of how much they earn or whether they have
-                                an accountant.
+                            <p className="text-gray-400 text-sm leading-relaxed">
+                                Our goal is simple: give every Kenyan the financial clarity they deserve,
+                                regardless of how much they earn.
                             </p>
                         </div>
-                        <div className="bg-blue-50 rounded-2xl p-8">
-                            <div className="space-y-4">
+
+                        <div className="bg-slate-950 rounded-2xl p-8 border border-white/5">
+                            <div className="space-y-3">
                                 {[
                                     'Designed for Kenyan users and businesses',
+                                    'M-Pesa Till and Paybill integration built in',
                                     'Works for both personal and business finances',
                                     'No accounting knowledge required',
-                                    'Generates reports your accountant will understand',
+                                    'Generates reports your accountant understands',
                                     'Free to start — no credit card needed',
                                 ].map((item, i) => (
-                                    <div key={i} className="flex items-center gap-3">
-                                        <div className="w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
-                                            <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                    <div key={i} className="flex items-start gap-3">
+                                        <div className="w-5 h-5 rounded-full bg-blue-500/20 border border-blue-500/30 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                            <svg className="w-2.5 h-2.5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                                             </svg>
                                         </div>
-                                        <span className="text-sm text-gray-700">{item}</span>
+                                        <span className="text-sm text-slate-300 leading-snug">{item}</span>
                                     </div>
                                 ))}
                             </div>
@@ -308,86 +394,66 @@ export default function Home() {
                 </div>
             </section>
 
-            {/* Contact */}
-            <section id="contact" className="bg-gray-50 py-20 px-6">
-                <div className="max-w-2xl mx-auto">
+            {/* ── CONTACT ─────────────────────────────────────────────── */}
+            <section id="contact" className="bg-gray-50 py-24 px-5">
+                <div className="max-w-xl mx-auto">
                     <div className="text-center mb-10">
-                        <h2 className="text-3xl font-bold text-gray-900 mb-3">Get in touch</h2>
-                        <p className="text-gray-500 text-sm">
-                            Have a question, suggestion, or want to give feedback? We read every message.
+                        <p className="text-blue-600 text-xs font-bold uppercase tracking-widest mb-3">Contact</p>
+                        <h2 className="text-4xl font-bold text-gray-900 tracking-tight mb-3" style={{ letterSpacing: '-0.02em' }}>
+                            Get in touch
+                        </h2>
+                        <p className="text-gray-400 text-sm">
+                            Have a question or feedback? We read every message.
                         </p>
                     </div>
-                    <div className="bg-white rounded-2xl border border-gray-100 p-8 shadow-sm">
+
+                    <div className="bg-white rounded-2xl border border-gray-100 p-8 shadow-sm shadow-gray-100">
                         {contactStatus === 'sent' ? (
-                            <div className="text-center py-8">
-                                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                                    <svg className="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            <div className="text-center py-10">
+                                <div className="w-14 h-14 bg-green-50 border border-green-100 rounded-full flex items-center justify-center mx-auto mb-5">
+                                    <svg className="w-6 h-6 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                                     </svg>
                                 </div>
-                                <h3 className="text-sm font-semibold text-gray-900 mb-2">Message sent</h3>
-                                <p className="text-sm text-gray-500">We'll get back to you as soon as possible.</p>
-                                <button
-                                    onClick={() => setContactStatus('idle')}
-                                    className="mt-4 text-sm text-blue-600 hover:underline"
-                                >
+                                <h3 className="text-base font-bold text-gray-900 mb-1">Message sent!</h3>
+                                <p className="text-sm text-gray-400 mb-5">We'll get back to you as soon as possible.</p>
+                                <button onClick={() => setContactStatus('idle')}
+                                    className="text-sm text-blue-600 font-medium hover:underline">
                                     Send another message
                                 </button>
                             </div>
                         ) : (
                             <form ref={formRef} onSubmit={handleContact} className="space-y-4">
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
-                                        <input
-                                            type="text"
-                                            name="from_name"
-                                            required
-                                            placeholder="John Doe"
-                                            className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        />
+                                        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Name</label>
+                                        <input type="text" name="from_name" required placeholder="Jane Doe"
+                                            className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow" />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                                        <input
-                                            type="email"
-                                            name="from_email"
-                                            required
-                                            placeholder="you@example.com"
-                                            className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        />
+                                        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Email</label>
+                                        <input type="email" name="from_email" required placeholder="you@example.com"
+                                            className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow" />
                                     </div>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Subject</label>
-                                    <input
-                                        type="text"
-                                        name="subject"
-                                        required
-                                        placeholder="How can we help?"
-                                        className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    />
+                                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Subject</label>
+                                    <input type="text" name="subject" required placeholder="How can we help?"
+                                        className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow" />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Message</label>
-                                    <textarea
-                                        name="message"
-                                        required
-                                        rows={5}
-                                        placeholder="Tell us what's on your mind..."
-                                        className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                                    />
+                                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Message</label>
+                                    <textarea name="message" required rows={5} placeholder="Tell us what's on your mind..."
+                                        className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow resize-none" />
                                 </div>
                                 {contactStatus === 'error' && (
-                                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
-                                        Failed to send. Please try again or email us directly.
+                                    <div className="p-3 bg-red-50 border border-red-100 rounded-xl text-red-500 text-sm">
+                                        Failed to send. Please try again or email us at{' '}
+                                        <a href="mailto:flowwise2026@gmail.com" className="underline">flowwise2026@gmail.com</a>
                                     </div>
                                 )}
-                                <button
-                                    type="submit"
-                                    disabled={contactStatus === 'sending'}
-                                    className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white text-sm font-medium py-3 rounded-lg transition-colors"
-                                >
+                                <button type="submit" disabled={contactStatus === 'sending'}
+                                    className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white text-sm font-semibold py-3.5 rounded-xl transition-colors shadow-sm shadow-blue-200">
                                     {contactStatus === 'sending' ? 'Sending...' : 'Send message'}
                                 </button>
                             </form>
@@ -396,49 +462,55 @@ export default function Home() {
                 </div>
             </section>
 
-            {/* Final CTA */}
-            <section className="py-20 px-6 text-center">
-                <div className="max-w-2xl mx-auto">
-                    <h2 className="text-3xl font-bold text-gray-900 mb-4">
-                        Ready to get started?
+            {/* ── FINAL CTA ───────────────────────────────────────────── */}
+            <section className="bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900 py-24 px-5 text-center relative overflow-hidden">
+                <div className="absolute inset-0 opacity-10"
+                    style={{
+                        backgroundImage: 'linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px)',
+                        backgroundSize: '40px 40px'
+                    }} />
+                <div className="relative max-w-2xl mx-auto">
+                    <h2 className="text-4xl md:text-5xl font-bold text-white mb-5 tracking-tight" style={{ letterSpacing: '-0.02em' }}>
+                        Ready to take control?
                     </h2>
-                    <p className="text-gray-500 text-sm mb-8">
-                        It takes less than a minute to create your account. No credit card required.
+                    <p className="text-slate-300 text-sm mb-10 leading-relaxed">
+                        Join thousands of Kenyans managing their finances smarter.<br />
+                        It takes less than a minute to get started.
                     </p>
-                    <Link
-                        to="/signup"
-                        className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold px-10 py-3.5 rounded-lg transition-colors text-sm shadow-lg shadow-blue-200"
-                    >
-                        Create your free account
+                    <Link to="/signup"
+                        className="inline-block bg-blue-500 hover:bg-blue-400 text-white font-bold px-10 py-4 rounded-xl transition-all text-sm shadow-xl shadow-blue-900/50 hover:-translate-y-0.5">
+                        Create your free account →
                     </Link>
+                    <p className="text-slate-500 text-xs mt-4">No credit card required · Cancel anytime</p>
                 </div>
             </section>
 
-            {/* Footer */}
-            <footer className="border-t border-gray-100 py-10 px-6">
-                <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+            {/* ── FOOTER ──────────────────────────────────────────────── */}
+            <footer className="bg-slate-950 border-t border-white/5 py-10 px-5">
+                <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-5">
                     <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 bg-blue-600 rounded flex items-center justify-center">
+                        <div className="w-6 h-6 bg-blue-600 rounded-lg flex items-center justify-center">
                             <span className="text-white text-xs font-bold">F</span>
                         </div>
-                        <span className="text-sm font-semibold text-gray-900">FlowWise</span>
+                        <span className="text-sm font-bold text-white">FlowWise</span>
                     </div>
+
                     <div className="flex items-center gap-6">
-                        <a href="#features" className="text-xs text-gray-400 hover:text-gray-600">Features</a>
-                        <a href="#about" className="text-xs text-gray-400 hover:text-gray-600">About</a>
-                        <a href="#contact" className="text-xs text-gray-400 hover:text-gray-600">Contact</a>
-                        <Link to="/login" className="text-xs text-gray-400 hover:text-gray-600">Log in</Link>
+                        {navLinks.map(l => (
+                            <a key={l.href} href={l.href} className="text-xs text-slate-500 hover:text-slate-300 transition-colors">
+                                {l.label}
+                            </a>
+                        ))}
+                        <Link to="/login" className="text-xs text-slate-500 hover:text-slate-300 transition-colors">Log in</Link>
                     </div>
-                   <div className="flex flex-col md:flex-row items-center gap-2 text-xs text-gray-400">
-                    <a 
-                        href="mailto:flowwise2026@gmail.com" 
-                        className="hover:text-gray-600 transition-colors"
-                  >
-                        flowwise2026@gmail.com
-                  </a>
-                <span className="hidden md:inline">•</span>
-                <span>© 2026 FlowWise. Built for Kenya.</span>
-            </div>
+
+                    <div className="flex flex-col md:flex-row items-center gap-2 text-xs text-slate-500">
+                        <a href="mailto:flowwise2026@gmail.com" className="hover:text-slate-300 transition-colors">
+                            flowwise2026@gmail.com
+                        </a>
+                        <span className="hidden md:inline">·</span>
+                        <span>© 2026 FlowWise. Built for Kenya.</span>
+                    </div>
                 </div>
             </footer>
 

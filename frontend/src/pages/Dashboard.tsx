@@ -48,7 +48,7 @@ export default function Dashboard() {
     const fetchData = async () => {
       try {
         const [txRes, alertRes] = await Promise.all([api.get('/transactions/'), api.get('/budgets/alerts')])
-        setTransactions(txRes.data)
+        setTransactions(txRes.data.transactions?? txRes.data)
         setAlerts(alertRes.data.alerts)
       } catch (err) { console.error(err) }
       finally { setLoading(false) }
@@ -146,7 +146,7 @@ export default function Dashboard() {
         )}
 
         {/* KPI cards */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 24 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14, marginBottom: 24 }}>
           {[
             { label: 'Total Income', value: totalIncome, color: '#059669', bg: isDark ? '#064e3b' : '#ecfdf5', icon: '↓' },
             { label: 'Total Expenses', value: totalExpense, color: '#dc2626', bg: isDark ? '#450a0a' : '#fef2f2', icon: '↑' },
@@ -179,7 +179,7 @@ export default function Dashboard() {
         )}
 
         {/* Charts row */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 16, marginBottom: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16, marginBottom: 16 }}>
 
           {/* Monthly bar chart */}
           <div style={{ background: C.card, borderRadius: 16, padding: '22px 24px', border: `1.5px solid ${C.border}` }}>
