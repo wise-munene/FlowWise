@@ -23,13 +23,17 @@ def create_app():
     db.init_app(app)
     migrate.init_app(app, db)
     jwt.init_app(app)
-    mail=Mail()
+    
     mail.init_app(app)
     limiter.init_app(app)
 
     # FIX SEC-04: CORS reads allowed origin from env var, not hardcoded localhost
-    allowed_origins = app.config.get('FRONTEND_URL', 'http://localhost:5173', "https://flowwise-amber.vercel.app")
+    allowed_origins = [
+    "http://localhost:5173",
+    "https://flowwise-amber.vercel.app"
+]
     CORS(
+
         app,
         resources={r'/api/*': {'origins': allowed_origins}},
         supports_credentials=True,
