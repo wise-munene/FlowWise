@@ -6,131 +6,184 @@ import { useTheme } from '../context/ThemeContext'
 export default function Navbar() {
     const { user, logout } = useAuth()
     const { isDark, toggleTheme } = useTheme()
-    const navigate  = useNavigate()
-    const location  = useLocation()
+    const navigate = useNavigate()
+    const location = useLocation()
     const [menuOpen, setMenuOpen] = useState(false)
 
-    const handleLogout = () => {
-        logout()
-        navigate('/login')
-    }
+    const handleLogout = () => { logout(); navigate('/login') }
 
     const navLinks = [
-        { path: '/dashboard',    label: 'Dashboard' },
-        { path: '/transactions', label: 'Transactions' },
-        { path: '/budgets',      label: 'Budgets' },
-        { path: '/reports',      label: 'Reports' },
-        { path: '/mpesa',        label: 'M-Pesa' },
+        { path: '/dashboard',    label: 'Dashboard',    icon: '📊' },
+        { path: '/transactions', label: 'Transactions', icon: '💳' },
+        { path: '/budgets',      label: 'Budgets',      icon: '🎯' },
+        { path: '/reports',      label: 'Reports',      icon: '📄' },
+        { path: '/mpesa',        label: 'M-Pesa',       icon: '📱' },
     ]
 
-    const activeClass = 'text-blue-600 dark:text-blue-400'
-    const inactiveClass = 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-
     return (
-        <nav className="bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-700 px-4 py-3 transition-colors duration-300 relative z-40">
-            <div className="max-w-6xl mx-auto flex items-center justify-between">
-
+        <>
+            {/* Top navbar */}
+            <nav style={{
+                background: isDark ? '#1f2937' : '#ffffff',
+                borderBottom: `1px solid ${isDark ? '#374151' : '#f0f0f0'}`,
+                padding: '0 16px',
+                height: 56,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                position: 'sticky',
+                top: 0,
+                zIndex: 50,
+                fontFamily: "'Inter', sans-serif",
+            }}>
                 {/* Logo */}
-                <Link to="/dashboard" className="text-xl font-bold text-blue-600 dark:text-blue-400 flex-shrink-0">
+                <Link to="/dashboard" style={{
+                    fontSize: 18, fontWeight: 700,
+                    color: isDark ? '#60a5fa' : '#2563eb',
+                    textDecoration: 'none', letterSpacing: '-0.5px', flexShrink: 0,
+                }}>
                     FlowWise
                 </Link>
 
                 {/* Desktop links */}
-                <div className="hidden md:flex items-center gap-6">
-                    {navLinks.map(link => (
-                        <Link
-                            key={link.path}
-                            to={link.path}
-                            className={`text-sm font-medium transition-colors duration-150 ${location.pathname === link.path ? activeClass : inactiveClass}`}
-                        >
-                            {link.label}
-                        </Link>
-                    ))}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }} className="desktop-nav">
+                    {navLinks.map(link => {
+                        const active = location.pathname === link.path
+                        return (
+                            <Link key={link.path} to={link.path} style={{
+                                fontSize: 13, fontWeight: 500, textDecoration: 'none',
+                                padding: '6px 12px', borderRadius: 8, transition: 'all 0.15s',
+                                color: active ? (isDark ? '#60a5fa' : '#2563eb') : (isDark ? '#9ca3af' : '#6b7280'),
+                                background: active ? (isDark ? '#1e3a8a' : '#eff6ff') : 'transparent',
+                            }}>
+                                {link.label}
+                            </Link>
+                        )
+                    })}
                     {user?.is_admin && (
-                        <Link to="/admin" className={`text-sm font-medium ${location.pathname === '/admin' ? 'text-purple-600 dark:text-purple-400' : 'text-gray-500 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400'}`}>
-                            Admin
-                        </Link>
+                        <Link to="/admin" style={{
+                            fontSize: 13, fontWeight: 500, textDecoration: 'none',
+                            padding: '6px 12px', borderRadius: 8, transition: 'all 0.15s',
+                            color: location.pathname === '/admin' ? '#7c3aed' : (isDark ? '#9ca3af' : '#6b7280'),
+                            background: location.pathname === '/admin' ? (isDark ? '#2e1065' : '#f5f3ff') : 'transparent',
+                        }}>Admin</Link>
                     )}
                 </div>
 
-                {/* Right side */}
-                <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-500 dark:text-gray-400 hidden lg:block truncate max-w-32">
+                {/* Right controls */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 13, color: isDark ? '#6b7280' : '#9ca3af', maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} className="desktop-only">
                         {user?.name}
                     </span>
 
-                    {/* Dark mode toggle */}
-                    <button
-                        onClick={toggleTheme}
-                        aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-                        className="w-9 h-9 flex items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-yellow-300 transition-colors"
-                    >
-                        {isDark ? (
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M17.657 17.657l-.707-.707M6.343 6.343l-.707-.707M12 7a5 5 0 100 10A5 5 0 0012 7z" />
-                            </svg>
-                        ) : (
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M21 12.79A9 9 0 1111.21 3a7 7 0 109.79 9.79z" />
-                            </svg>
-                        )}
+                    {/* Theme toggle */}
+                    <button onClick={toggleTheme} style={{
+                        width: 36, height: 36, borderRadius: 10, border: 'none', cursor: 'pointer',
+                        background: isDark ? '#374151' : '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 16, transition: 'background 0.15s',
+                    }}>
+                        {isDark ? '☀️' : '🌙'}
                     </button>
 
-                    {/* Logout — desktop only */}
-                    <button
-                        onClick={handleLogout}
-                        className="hidden md:block text-sm bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-3 py-2 rounded-lg transition-colors"
-                    >
+                    {/* Desktop logout */}
+                    <button onClick={handleLogout} style={{
+                        fontSize: 13, fontWeight: 500, padding: '7px 14px', borderRadius: 9,
+                        border: 'none', cursor: 'pointer', transition: 'background 0.15s',
+                        background: isDark ? '#374151' : '#f3f4f6',
+                        color: isDark ? '#d1d5db' : '#374151',
+                    }} className="desktop-only">
                         Logout
                     </button>
 
-                    {/* Hamburger — mobile only (FIX UX-04) */}
-                    <button
-                        onClick={() => setMenuOpen(o => !o)}
-                        aria-label="Toggle menu"
-                        className="md:hidden w-9 h-9 flex flex-col items-center justify-center gap-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                    >
-                        <span className={`block w-5 h-0.5 bg-gray-700 dark:bg-gray-200 transition-transform duration-200 ${menuOpen ? 'rotate-45 translate-y-2' : ''}`} />
-                        <span className={`block w-5 h-0.5 bg-gray-700 dark:bg-gray-200 transition-opacity duration-200 ${menuOpen ? 'opacity-0' : ''}`} />
-                        <span className={`block w-5 h-0.5 bg-gray-700 dark:bg-gray-200 transition-transform duration-200 ${menuOpen ? '-rotate-45 -translate-y-2' : ''}`} />
+                    {/* Mobile hamburger */}
+                    <button onClick={() => setMenuOpen(o => !o)} style={{
+                        width: 36, height: 36, borderRadius: 10, border: 'none', cursor: 'pointer',
+                        background: isDark ? '#374151' : '#f3f4f6',
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 5,
+                        flexShrink: 0,
+                    }} className="mobile-only">
+                        <span style={{ display: 'block', width: 18, height: 2, background: isDark ? '#d1d5db' : '#374151', borderRadius: 2, transition: 'transform 0.2s', transform: menuOpen ? 'rotate(45deg) translateY(7px)' : 'none' }} />
+                        <span style={{ display: 'block', width: 18, height: 2, background: isDark ? '#d1d5db' : '#374151', borderRadius: 2, transition: 'opacity 0.2s', opacity: menuOpen ? 0 : 1 }} />
+                        <span style={{ display: 'block', width: 18, height: 2, background: isDark ? '#d1d5db' : '#374151', borderRadius: 2, transition: 'transform 0.2s', transform: menuOpen ? 'rotate(-45deg) translateY(-7px)' : 'none' }} />
+                    </button>
+                </div>
+            </nav>
+
+            {/* Mobile menu drawer */}
+            {menuOpen && (
+                <div style={{
+                    position: 'fixed', top: 56, left: 0, right: 0, bottom: 0,
+                    background: isDark ? 'rgba(0,0,0,0.7)' : 'rgba(0,0,0,0.4)',
+                    backdropFilter: 'blur(4px)', zIndex: 49,
+                }} onClick={() => setMenuOpen(false)} />
+            )}
+
+            <div style={{
+                position: 'fixed', top: 56, right: 0, bottom: 0, width: 260,
+                background: isDark ? '#1f2937' : '#ffffff',
+                borderLeft: `1px solid ${isDark ? '#374151' : '#f0f0f0'}`,
+                zIndex: 50, transform: menuOpen ? 'translateX(0)' : 'translateX(100%)',
+                transition: 'transform 0.28s cubic-bezier(0.32, 0.72, 0, 1)',
+                display: 'flex', flexDirection: 'column',
+                fontFamily: "'Inter', sans-serif",
+                overflowY: 'auto',
+            }}>
+                <div style={{ padding: '16px 16px 8px' }}>
+                    <p style={{ fontSize: 12, color: isDark ? '#6b7280' : '#9ca3af', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.6px', margin: '0 0 12px' }}>
+                        {user?.name}
+                    </p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        {navLinks.map(link => {
+                            const active = location.pathname === link.path
+                            return (
+                                <Link key={link.path} to={link.path} onClick={() => setMenuOpen(false)} style={{
+                                    display: 'flex', alignItems: 'center', gap: 12,
+                                    padding: '12px 14px', borderRadius: 12, textDecoration: 'none',
+                                    transition: 'all 0.15s',
+                                    background: active ? (isDark ? '#1e3a8a' : '#eff6ff') : 'transparent',
+                                    color: active ? (isDark ? '#60a5fa' : '#2563eb') : (isDark ? '#d1d5db' : '#374151'),
+                                    fontWeight: active ? 600 : 400, fontSize: 15,
+                                }}>
+                                    <span style={{ fontSize: 20 }}>{link.icon}</span>
+                                    {link.label}
+                                </Link>
+                            )
+                        })}
+                        {user?.is_admin && (
+                            <Link to="/admin" onClick={() => setMenuOpen(false)} style={{
+                                display: 'flex', alignItems: 'center', gap: 12,
+                                padding: '12px 14px', borderRadius: 12, textDecoration: 'none',
+                                color: isDark ? '#d1d5db' : '#374151', fontSize: 15,
+                            }}>
+                                <span style={{ fontSize: 20 }}>⚙️</span> Admin
+                            </Link>
+                        )}
+                    </div>
+                </div>
+
+                <div style={{ marginTop: 'auto', padding: 16, borderTop: `1px solid ${isDark ? '#374151' : '#f0f0f0'}` }}>
+                    <button onClick={handleLogout} style={{
+                        width: '100%', padding: '12px', borderRadius: 12, border: 'none',
+                        background: isDark ? '#374151' : '#f3f4f6', color: isDark ? '#d1d5db' : '#374151',
+                        fontSize: 15, fontWeight: 500, cursor: 'pointer', fontFamily: "'Inter', sans-serif",
+                    }}>
+                        Logout
                     </button>
                 </div>
             </div>
 
-            {/* Mobile drawer (FIX UX-04) */}
-            {menuOpen && (
-                <div className="md:hidden absolute top-full left-0 right-0 bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-700 shadow-lg px-4 py-3 flex flex-col gap-1">
-                    {navLinks.map(link => (
-                        <Link
-                            key={link.path}
-                            to={link.path}
-                            onClick={() => setMenuOpen(false)}
-                            className={`text-sm font-medium px-3 py-2.5 rounded-lg transition-colors ${
-                                location.pathname === link.path
-                                    ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
-                                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
-                            }`}
-                        >
-                            {link.label}
-                        </Link>
-                    ))}
-                    {user?.is_admin && (
-                        <Link
-                            to="/admin"
-                            onClick={() => setMenuOpen(false)}
-                            className="text-sm font-medium px-3 py-2.5 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
-                        >
-                            Admin
-                        </Link>
-                    )}
-                    <div className="mt-2 pt-2 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between">
-                        <span className="text-sm text-gray-500 dark:text-gray-400">{user?.name}</span>
-                        <button onClick={handleLogout} className="text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 px-3 py-1.5 rounded-lg">
-                            Logout
-                        </button>
-                    </div>
-                </div>
-            )}
-        </nav>
+            <style>{`
+                @media (min-width: 768px) {
+                    .desktop-nav { display: flex !important; }
+                    .desktop-only { display: block !important; }
+                    .mobile-only { display: none !important; }
+                }
+                @media (max-width: 767px) {
+                    .desktop-nav { display: none !important; }
+                    .desktop-only { display: none !important; }
+                    .mobile-only { display: flex !important; }
+                }
+            `}</style>
+        </>
     )
 }
