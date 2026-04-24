@@ -23,6 +23,7 @@ def create_app():
     db.init_app(app)
     migrate.init_app(app, db)
     jwt.init_app(app)
+    mail=Mail()
     mail.init_app(app)
     limiter.init_app(app)
 
@@ -41,7 +42,7 @@ def create_app():
     from .models import User, Transaction, Budget, Receipt
     from .models.reset_token import PasswordResetToken
 
-    from .routes import auth_bp, transactions_bp, budgets_bp, reports_bp, mpesa_bp, admin_bp
+    from .routes import auth_bp, transactions_bp, budgets_bp, reports_bp, mpesa_bp, admin_bp, contact_bp
 
     app.register_blueprint(auth_bp,          url_prefix='/api/auth')
     app.register_blueprint(transactions_bp,  url_prefix='/api/transactions')
@@ -49,5 +50,5 @@ def create_app():
     app.register_blueprint(reports_bp,       url_prefix='/api/reports')
     app.register_blueprint(mpesa_bp,         url_prefix='/api/mpesa')
     app.register_blueprint(admin_bp,         url_prefix='/api')
-
+    app.register_blueprint(contact_bp,       url_prefix='/api')
     return app

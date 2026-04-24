@@ -1,44 +1,38 @@
 import { Link } from 'react-router-dom'
-import emailjs from '@emailjs/browser'
-import { useEffect, useRef, useState } from 'react'
+import axios from 'axios'
+import { useRef, useState } from 'react'
 
 export default function Home() {
     const formRef = useRef<HTMLFormElement>(null)
     const [contactStatus, setContactStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
     const [menuOpen, setMenuOpen] = useState(false)
 
-    useEffect(() => {
-        const key = import.meta.env.VITE_EMAILJS_PUBLIC_KEY
-        if (key) emailjs.init(key)
-    }, [])
+   
 
     const handleContact = async (e: React.FormEvent) => {
-        e.preventDefault()
-        setContactStatus('sending')
-        const form = formRef.current
-        if (!form) return
+    e.preventDefault()
+    setContactStatus('sending')
 
-        const templateParams = {
-            from_name:  (form.elements.namedItem('from_name')  as HTMLInputElement).value,
-            from_email: (form.elements.namedItem('from_email') as HTMLInputElement).value,
-            subject:    (form.elements.namedItem('subject')    as HTMLInputElement).value,
-            message:    (form.elements.namedItem('message')    as HTMLTextAreaElement).value,
-        }
+    const form = formRef.current
+    if (!form) return
 
-        try {
-            await emailjs.send(
-                import.meta.env.VITE_EMAILJS_SERVICE_ID  || '',
-                import.meta.env.VITE_EMAILJS_TEMPLATE_ID || '',
-                templateParams,
-                import.meta.env.VITE_EMAILJS_PUBLIC_KEY  || ''
-            )
-            setContactStatus('sent')
-            formRef.current?.reset()
-        } catch (err) {
-            console.error('EmailJS error:', err)
-            setContactStatus('error')
-        }
+    const data = {
+        name: (form.elements.namedItem('from_name') as HTMLInputElement).value,
+        email: (form.elements.namedItem('from_email') as HTMLInputElement).value,
+        subject: (form.elements.namedItem('subject') as HTMLInputElement).value,
+        message: (form.elements.namedItem('message') as HTMLTextAreaElement).value,
     }
+
+    try {
+        await axios.post(`${import.meta.env.VITE_API_URL}/contact`, data)
+
+        setContactStatus('sent')
+        form.reset()
+    } catch (err) {
+        console.error('Contact error:', err)
+        setContactStatus('error')
+    }
+}
 
     const features = [
         { icon: '📊', title: 'Track every shilling',   desc: "Log income and expenses in seconds — salary, a sale, or a weekly shopping trip." },
@@ -428,23 +422,23 @@ export default function Home() {
                                     <div>
                                         <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Name</label>
                                         <input type="text" name="from_name" required placeholder="Jane Doe"
-                                            className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow" />
+                                            className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm text-gray-900 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow" />
                                     </div>
                                     <div>
                                         <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Email</label>
                                         <input type="email" name="from_email" required placeholder="you@example.com"
-                                            className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow" />
+                                            className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm text-gray-900 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow" />
                                     </div>
                                 </div>
                                 <div>
                                     <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Subject</label>
                                     <input type="text" name="subject" required placeholder="How can we help?"
-                                        className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow" />
+                                        className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm text-gray-900 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow" />
                                 </div>
                                 <div>
                                     <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Message</label>
                                     <textarea name="message" required rows={5} placeholder="Tell us what's on your mind..."
-                                        className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow resize-none" />
+                                        className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm text-gray-900 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow resize-none" />
                                 </div>
                                 {contactStatus === 'error' && (
                                     <div className="p-3 bg-red-50 border border-red-100 rounded-xl text-red-500 text-sm">
